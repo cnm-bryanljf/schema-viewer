@@ -1,0 +1,50 @@
+// Schema de exemplo — Schema Viewer
+
+TableGroup Usuarios {
+  users
+  user_roles
+}
+
+TableGroup Pedidos {
+  orders
+  order_items
+}
+
+Table users {
+  id         int           [pk, increment]
+  name       varchar(120)  [not null]
+  email      varchar(255)  [not null, unique]
+  created_at timestamp     [not null, default: `now()`]
+
+  Note: 'Tabela principal de usuários'
+}
+
+Table user_roles {
+  id      int         [pk, increment]
+  user_id int         [not null, ref: > users.id]
+  role    varchar(50) [not null, note: 'admin | editor | viewer']
+}
+
+Table orders {
+  id         int           [pk, increment]
+  user_id    int           [not null, ref: > users.id]
+  total      decimal(10,2) [not null]
+  status     varchar(30)   [not null, default: 'pending']
+  created_at timestamp     [not null, default: `now()`]
+}
+
+Table order_items {
+  id         int           [pk, increment]
+  order_id   int           [not null, ref: > orders.id]
+  product    varchar(200)  [not null]
+  quantity   int           [not null]
+  unit_price decimal(10,2) [not null]
+}
+
+Table products {
+  id          int           [pk, increment]
+  name        varchar(200)  [not null]
+  description text
+  price       decimal(10,2) [not null]
+  stock       int           [not null, default: 0]
+}

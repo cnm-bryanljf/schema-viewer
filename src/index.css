@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* ── Dark mode via .dark class on a parent ───────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Theme CSS variables ─────────────────────────────────────────────────── */
+:root {
+  --node-bg: #f8fafc;
+  --node-border: rgba(0, 0, 0, 0.08);
+  --node-text: #0f172a;
+  --node-text-muted: #64748b;
+  --node-divide: rgba(0, 0, 0, 0.08);
+  --canvas-bg: #f1f5f9;
+  --canvas-dot: #cbd5e1;
+}
+
+.dark {
+  --node-bg: #1e293b;
+  --node-border: rgba(255, 255, 255, 0.1);
+  --node-text: #e2e8f0;
+  --node-text-muted: #94a3b8;
+  --node-divide: rgba(255, 255, 255, 0.07);
+  --canvas-bg: #020617;
+  --canvas-dot: #1e293b;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas-bg);
+  color: var(--node-text);
+}
+
+/* ── React Flow canvas ───────────────────────────────────────────────────── */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__controls button {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+.dark .react-flow__controls button {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+:not(.dark) .react-flow__controls button {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+:not(.dark) .react-flow__controls button:hover {
+  background: #f1f5f9 !important;
+}
+
+.react-flow__controls button:hover {
+  background: #334155 !important;
+}
+
+.react-flow__edge-path {
+  stroke: #475569;
+}
+
+.react-flow__edge-text {
+  fill: #94a3b8;
+  font-size: 10px;
+}
+
+.react-flow__minimap-mask {
+  fill: #0f172a80;
+}
+
+/* ── Group nodes: transparent to mouse by default (canvas can pan through) */
+.react-flow__node-groupNode {
+  pointer-events: none;
+}
+
+/* Elements inside group that should receive events */
+.react-flow__node-groupNode .group-interaction {
+  pointer-events: auto;
+}
+
+/* When a group is in edit mode, restore full pointer events */
+.react-flow__node-groupNode.group-editable {
+  pointer-events: all;
+}
+
+/* ── Animation ───────────────────────────────────────────────────────────── */
+@keyframes dash-flow {
+  from { stroke-dashoffset: 26; }
+  to   { stroke-dashoffset: 0;  }
+}
