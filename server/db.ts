@@ -36,6 +36,17 @@ db.exec(`
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS table_note_items (
+    id          TEXT NOT NULL,
+    schema_id   TEXT NOT NULL,
+    table_name  TEXT NOT NULL,
+    title       TEXT DEFAULT '',
+    content     TEXT DEFAULT '',
+    created_at  TEXT DEFAULT (datetime('now')),
+    updated_at  TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (schema_id, table_name, id)
+  );
 `)
 
 export default db

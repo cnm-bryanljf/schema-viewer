@@ -71,6 +71,95 @@ app.get('/api/docs', (_req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }) }
 })
 
+// ── Markdown patch ────────────────────────────────────────────────────────────
+
+interface MarkdownPatch {
+  overview?: string
+  columns?: { name: string; summary: string }[]
+  notes?: { title: string; content: string }[]
+}
+
+function patchMarkdownContent(raw: string, patch: MarkdownPatch): string {
+  const eol = raw.includes('\r\n') ? '\r\n' : '\n'
+  const lines = raw.split(/\r?\n/)
+
+  // Split into sections delimited by ## headings
+  const sections: { heading: string; body: string[] }[] = []
+  let cur: { heading: string; body: string[] } = { heading: '', body: [] }
+  for (const line of lines) {
+    if (/^##\s/.test(line)) { sections.push(cur); cur = { heading: line, body: [] } }
+    else cur.body.push(line)
+  }
+  sections.push(cur)
+
+  const out: string[] = []
+
+  for (const sec of sections) {
+    const name = sec.heading.replace(/^##\s+/, '').trim().toLowerCase()
+
+    // Remove old ## Notas section — will be rebuilt at end
+    if (name === 'notas' && patch.notes !== undefined) continue
+
+    if (!sec.heading) { out.push(...sec.body); continue }
+
+    out.push(sec.heading)
+
+    // Replace overview body
+    if ((name === 'visão geral' || name === 'visao geral') && patch.overview !== undefined) {
+      out.push(patch.overview); out.push(''); continue
+    }
+
+    // Update column summaries
+    if (name === 'colunas' && patch.columns && patch.columns.length > 0) {
+      for (const line of sec.body) {
+        const m = line.match(/^(-\s+\*\*)([^*]+)(\*\*)/)
+        if (m) {
+          const colName = m[2].trim()
+          const colPatch = patch.columns.find(c => c.name === colName)
+          if (colPatch !== undefined) {
+            const emDash = line.indexOf('—')
+            if (emDash !== -1) {
+              out.push(line.slice(0, emDash).trimEnd() + ' — ' + colPatch.summary)
+            } else {
+              out.push(line.trimEnd() + ' — ' + colPatch.summary)
+            }
+            continue
+          }
+        }
+        out.push(line)
+      }
+      continue
+    }
+
+    out.push(...sec.body)
+  }
+
+  // Strip trailing blank lines before appending notes
+  while (out.length > 0 && out[out.length - 1].trim() === '') out.pop()
+
+  if (patch.notes !== undefined && patch.notes.length > 0) {
+    out.push(''); out.push('## Notas')
+    for (const note of patch.notes) {
+      out.push(''); out.push(`### ${note.title || 'Nota'}`)
+      if (note.content) out.push(note.content)
+    }
+  }
+
+  out.push('') // trailing newline
+  return out.join(eol)
+}
+
+app.patch('/api/docs/:tableName/patch', (req, res) => {
+  const { tableName } = req.params
+  const filePath = path.join(DOCS_DIR, `${tableName}.md`)
+  if (!fs.existsSync(filePath)) { res.status(404).json({ error: 'Doc file not found' }); return }
+  try {
+    const updated = patchMarkdownContent(fs.readFileSync(filePath, 'utf-8'), req.body as MarkdownPatch)
+    fs.writeFileSync(filePath, updated, 'utf-8')
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: String(e) }) }
+})
+
 app.post('/api/docs/open-folder', (_req, res) => {
   if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true })
   const platform = process.platform
@@ -112,22 +201,49 @@ app.delete('/api/positions/:schemaId', (req, res) => {
   res.json({ ok: true })
 })
 
-// ── Notes ────────────────────────────────────────────────────────────────────
+// ── Notes (multi-note per table) ─────────────────────────────────────────────
 
+// GET all notes for a table
 app.get('/api/notes/:schemaId/:tableName', (req, res) => {
   const { schemaId, tableName } = req.params
-  const row = db.prepare('SELECT note FROM table_notes WHERE schema_id=? AND table_name=?').get(schemaId, tableName) as any
-  res.json({ note: row?.note ?? '' })
+  const rows = db.prepare(
+    'SELECT id, title, content, created_at, updated_at FROM table_note_items WHERE schema_id=? AND table_name=? ORDER BY created_at ASC'
+  ).all(schemaId, tableName)
+  res.json(rows)
 })
 
+// GET all notes for a schema (used when saving workspace)
+app.get('/api/notes/:schemaId', (req, res) => {
+  const { schemaId } = req.params
+  const rows = db.prepare(
+    'SELECT id, table_name, title, content, created_at, updated_at FROM table_note_items WHERE schema_id=? ORDER BY table_name, created_at ASC'
+  ).all(schemaId) as any[]
+  // Group by tableName
+  const grouped: Record<string, any[]> = {}
+  for (const row of rows) {
+    if (!grouped[row.table_name]) grouped[row.table_name] = []
+    grouped[row.table_name].push({ id: row.id, title: row.title, content: row.content, createdAt: row.created_at, updatedAt: row.updated_at })
+  }
+  res.json(grouped)
+})
+
+// POST create or update a note
 app.post('/api/notes/:schemaId/:tableName', (req, res) => {
   const { schemaId, tableName } = req.params
-  const { note } = req.body
+  const { id, title, content } = req.body
+  if (!id) { res.status(400).json({ error: 'Missing id' }); return }
   db.prepare(`
-    INSERT INTO table_notes (schema_id, table_name, note, updated_at)
-    VALUES (?, ?, ?, datetime('now'))
-    ON CONFLICT(schema_id, table_name) DO UPDATE SET note=excluded.note, updated_at=excluded.updated_at
-  `).run(schemaId, tableName, note ?? '')
+    INSERT INTO table_note_items (id, schema_id, table_name, title, content, updated_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(schema_id, table_name, id) DO UPDATE SET title=excluded.title, content=excluded.content, updated_at=excluded.updated_at
+  `).run(id, schemaId, tableName, title ?? '', content ?? '')
+  res.json({ ok: true })
+})
+
+// DELETE a note
+app.delete('/api/notes/:schemaId/:tableName/:noteId', (req, res) => {
+  const { schemaId, tableName, noteId } = req.params
+  db.prepare('DELETE FROM table_note_items WHERE schema_id=? AND table_name=? AND id=?').run(schemaId, tableName, noteId)
   res.json({ ok: true })
 })
 

@@ -47,6 +47,8 @@ export type TableNodeData = {
   // Highlight state when another table is selected
   selectionDimmed?: boolean
   highlightedColumns?: string[]
+  // Snowflake layout: marks the central (highest-degree) table per group
+  isSnowflakeCenter?: boolean
 }
 
 export type GroupNodeData = {
@@ -60,6 +62,16 @@ export type GroupNodeData = {
 export type TableVisibilityRow = {
   name: string
   visible: boolean
+}
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+
+export type NoteItem = {
+  id: string
+  title: string
+  content: string
+  createdAt: string
+  updatedAt: string
 }
 
 // ── Documentation ─────────────────────────────────────────────────────────────
@@ -92,7 +104,7 @@ export type Workspace = {
   schemaContent: string
   schemaId: string
   nodePositions: WorkspaceNodePos[]
-  notes: Record<string, string>          // tableName → note
+  notes: Record<string, NoteItem[]>      // tableName → notes array
   docOverrides: Record<string, Partial<TableDoc>>  // tableName → edited fields
   hiddenTables: string[]
   hasDocs?: boolean                       // whether docs/ were loaded when saved

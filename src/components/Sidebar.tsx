@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useReactFlow } from '@xyflow/react'
 import type { TableVisibilityRow, DocsMap } from '../types'
 import { generateDocTemplate } from '../hooks/useDocParser'
@@ -13,6 +14,7 @@ type SidebarProps = {
 
   // File
   onOpenFile: () => void
+  onOpenDbmlEditor: () => void
   onSavePng: () => void
   schemaHistory: { id: string; label: string }[]
   onLoadHistory: (id: string) => void
@@ -55,9 +57,11 @@ type SidebarProps = {
 
   // Workspace
   workspaces: WorkspaceEntry[]
-  onSaveWorkspace: (name: string) => void
+  onSaveWorkspace: (name: string, existingId?: string) => void
   onLoadWorkspace: (id: string) => void
   onDeleteWorkspace: (id: string) => void
+  onExportWorkspace: (id: string) => void
+  onImportWorkspace: (data: string) => void
 
   // Theme
   darkMode: boolean
@@ -166,23 +170,24 @@ function Section({
 
 function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors rounded-sm ${
-        active
-          ? 'bg-slate-700 text-white dark:bg-slate-700 dark:text-white'
-          : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'
-      }`}
-    >
-      {children}
-    </button>
+    <div className="flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 group">
+      <button
+        onClick={onClick}
+        className="flex-1 flex items-center gap-2 px-2 py-1 text-xs text-left transition-colors text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
+      >
+        {children}
+      </button>
+      <button onClick={onClick} className="px-1 py-1 flex items-center justify-center shrink-0 transition-colors" title={active ? 'Ocultar' : 'Mostrar'}>
+        {active ? <EyeOpen /> : <EyeClosed />}
+      </button>
+    </div>
   )
 }
 
 export default function Sidebar(props: SidebarProps) {
   const {
     collapsed, onToggleCollapse,
-    onOpenFile, onSavePng,
+    onOpenFile, onOpenDbmlEditor, onSavePng,
     schemaHistory, onLoadHistory,
     showEdges, onToggleEdges,
     showLabels, onToggleLabels,
@@ -192,7 +197,7 @@ export default function Sidebar(props: SidebarProps) {
     search, onSearch,
     tables, onToggleTableVisibility, onFocusTable,
     docs, onImportDocs,
-    workspaces, onSaveWorkspace, onLoadWorkspace, onDeleteWorkspace,
+    workspaces, onSaveWorkspace, onLoadWorkspace, onDeleteWorkspace, onExportWorkspace, onImportWorkspace,
     darkMode, onToggleDarkMode,
     isFullscreen, onToggleFullscreen,
   } = props
@@ -201,6 +206,13 @@ export default function Sidebar(props: SidebarProps) {
   const [savingPng, setSavingPng] = useState(false)
   const [wsNameInput, setWsNameInput] = useState('')
   const [showWsSave, setShowWsSave] = useState(false)
+  // Duplicate-name confirmation state
+  const [wsDuplicateId, setWsDuplicateId] = useState<string | null>(null)
+  // Overwrite confirmation modal
+  const [wsOverwritePending, setWsOverwritePending] = useState<{ id: string; name: string } | null>(null)
+  // Delete confirmation modal
+  const [wsDeletePending, setWsDeletePending] = useState<{ id: string; name: string } | null>(null)
+  const importWsRef = useRef<HTMLInputElement>(null)
   const [openingFolder, setOpeningFolder] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed)
   const hasDocs = Object.keys(docs).length > 0
@@ -218,6 +230,28 @@ export default function Sidebar(props: SidebarProps) {
   const handleOpenFolder = async () => {
     setOpeningFolder(true)
     try { await fetch('/api/docs/open-folder', { method: 'POST' }) } finally { setOpeningFolder(false) }
+  }
+
+  /** Save workspace with duplicate-name guard */
+  const handleWsSave = () => {
+    const trimmed = wsNameInput.trim()
+    if (!trimmed) return
+    const existing = workspaces.find(ws => ws.name === trimmed)
+    if (existing) {
+      setWsDuplicateId(existing.id)
+    } else {
+      onSaveWorkspace(trimmed)
+      setWsNameInput('')
+      setShowWsSave(false)
+    }
+  }
+
+  const handleWsConfirmReplace = () => {
+    if (!wsDuplicateId) return
+    onSaveWorkspace(wsNameInput.trim(), wsDuplicateId)
+    setWsDuplicateId(null)
+    setWsNameInput('')
+    setShowWsSave(false)
   }
 
   const handleSavePng = async () => {
@@ -244,8 +278,12 @@ export default function Sidebar(props: SidebarProps) {
         <button onClick={onToggleCollapse} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white p-1 flex items-center justify-center" title="Expandir">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><polygon points="1,0 7,4 1,8" /></svg>
         </button>
-        <button onClick={onOpenFile} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white text-sm p-1" title="Abrir DBML">📂</button>
-        <button onClick={handleSavePng} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white text-sm p-1" title="Salvar PNG">💾</button>
+        <button onClick={onOpenFile} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white p-1" title="Abrir DBML">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.707 4.7A1 1 0 0 0 9.414 5H13a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/></svg>
+        </button>
+        <button onClick={handleSavePng} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white p-1" title="Salvar PNG">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 14h10a1 1 0 0 0 1-1V5.414a1 1 0 0 0-.293-.707l-2.414-2.414A1 1 0 0 0 10.586 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1z"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
+        </button>
         <div className="w-6 h-px bg-gray-200 dark:bg-slate-700" />
         <button onClick={onUndo} disabled={!canUndo} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-30 p-1" title="Desfazer">↺</button>
         <button onClick={onRedo} disabled={!canRedo} className="text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-30 p-1" title="Refazer">↻</button>
@@ -267,6 +305,7 @@ export default function Sidebar(props: SidebarProps) {
 
   // ── Expanded sidebar ───────────────────────────────────────────────────────
   return (
+    <>
     <aside className="flex flex-col bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 h-full shrink-0 overflow-hidden" style={{ width: 280 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-slate-700 shrink-0">
@@ -303,16 +342,22 @@ export default function Sidebar(props: SidebarProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:theme(colors.gray.300)_transparent] dark:[scrollbar-color:theme(colors.slate.700)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
 
         {/* Arquivo */}
         <Section id="arquivo" title="Arquivo" collapsed={isSectionCollapsed('arquivo')} onToggle={toggleSection}>
           <div className="px-2 space-y-1">
             <button onClick={onOpenFile} className="w-full flex items-center gap-2 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors">
-              <span>📂</span> Abrir arquivo .dbml
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.707 4.7A1 1 0 0 0 9.414 5H13a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/></svg>
+              Abrir arquivo .dbml
+            </button>
+            <button onClick={onOpenDbmlEditor} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors border border-gray-200 dark:border-slate-700">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z"/><path d="M10 4l2 2"/></svg>
+              Editar DBML
             </button>
             <button onClick={handleSavePng} disabled={savingPng} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 text-gray-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-colors">
-              <span>💾</span> {savingPng ? 'Salvando...' : 'Salvar como PNG'}
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
+              {savingPng ? 'Salvando...' : 'Salvar como PNG'}
             </button>
             {schemaHistory.length > 0 && (
               <select onChange={e => { if (e.target.value) onLoadHistory(e.target.value); e.target.value = '' }} value=""
@@ -329,7 +374,7 @@ export default function Sidebar(props: SidebarProps) {
           <div className="px-2 space-y-1">
             {hasDocs ? (
               <div className="flex items-center gap-2 px-2 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700/40 rounded-lg">
-                <span className="text-green-500 dark:text-green-400 text-xs">✓</span>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 dark:text-green-400 shrink-0"><polyline points="1.5,6 4.5,9 10.5,3"/></svg>
                 <span className="text-green-700 dark:text-green-300 text-xs flex-1">{Object.keys(docs).length} arquivo(s) em docs/</span>
                 <button onClick={onImportDocs} className="text-xs text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors" title="Recarregar docs">↺</button>
               </div>
@@ -340,13 +385,16 @@ export default function Sidebar(props: SidebarProps) {
               </div>
             )}
             <button onClick={onImportDocs} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs rounded-lg border border-dashed border-gray-300 dark:border-slate-600 transition-colors">
-              <span>📂</span> Usar pasta docs/
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.707 4.7A1 1 0 0 0 9.414 5H13a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/></svg>
+              Usar pasta docs/
             </button>
             <button onClick={handleOpenFolder} disabled={openingFolder} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 disabled:opacity-50 text-gray-500 dark:text-slate-400 text-xs rounded-lg transition-colors">
-              <span>📁</span> {openingFolder ? 'Abrindo...' : 'Abrir pasta docs/ no explorador'}
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 11V5a1 1 0 0 1 1-1h3l2 2h7a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z"/></svg>
+              {openingFolder ? 'Abrindo...' : 'Abrir pasta docs/ no explorador'}
             </button>
             <button onClick={handleDownloadTemplate} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-400 text-xs rounded-lg transition-colors">
-              <span>⬇</span> Baixar modelo .md
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v8m0 0l-3-3m3 3l3-3"/><path d="M3 13h10"/></svg>
+              Baixar modelo .md
             </button>
           </div>
         </Section>
@@ -355,22 +403,38 @@ export default function Sidebar(props: SidebarProps) {
         <Section id="workspace" title="Workspace" collapsed={isSectionCollapsed('workspace')} onToggle={toggleSection}>
           <div className="px-2 space-y-1">
             {!showWsSave ? (
-              <button onClick={() => setShowWsSave(true)} className="w-full flex items-center gap-2 px-2 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors">
-                <span>💿</span> Salvar workspace
-              </button>
+              <div className="flex gap-1">
+                <button onClick={() => setShowWsSave(true)} className="flex-1 flex items-center gap-2 px-2 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
+                  Salvar workspace
+                </button>
+                <button onClick={() => importWsRef.current?.click()} className="flex items-center gap-1 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors border border-gray-200 dark:border-slate-700" title="Importar workspace">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M3 12h10"/><path d="M2 14h12a1 1 0 0 0 1-1v-1H1v1a1 1 0 0 0 1 1z"/></svg>
+                </button>
+              </div>
+            ) : wsDuplicateId ? (
+              /* Duplicate-name confirmation */
+              <div className="space-y-1 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700/50 rounded-lg">
+                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Workspace "{wsNameInput.trim()}" já existe.</p>
+                <p className="text-[10px] text-amber-600 dark:text-amber-400">Deseja substituir o existente?</p>
+                <div className="flex gap-1 pt-0.5">
+                  <button onClick={handleWsConfirmReplace} className="flex-1 py-1 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors font-medium">Substituir</button>
+                  <button onClick={() => setWsDuplicateId(null)} className="px-3 py-1 text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 rounded-lg transition-colors">Cancelar</button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-1">
                 <input
                   autoFocus
                   value={wsNameInput}
                   onChange={e => setWsNameInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && wsNameInput.trim()) { onSaveWorkspace(wsNameInput.trim()); setWsNameInput(''); setShowWsSave(false) } if (e.key === 'Escape') setShowWsSave(false) }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleWsSave(); if (e.key === 'Escape') { setShowWsSave(false); setWsNameInput('') } }}
                   placeholder="Nome do workspace..."
                   className="w-full bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-indigo-400 dark:border-indigo-600 focus:outline-none"
                 />
                 <div className="flex gap-1">
-                  <button onClick={() => { if (wsNameInput.trim()) { onSaveWorkspace(wsNameInput.trim()); setWsNameInput(''); setShowWsSave(false) } }} disabled={!wsNameInput.trim()} className="flex-1 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg transition-colors">Salvar</button>
-                  <button onClick={() => { setShowWsSave(false); setWsNameInput('') }} className="px-3 py-1 text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 rounded-lg transition-colors">✕</button>
+                  <button onClick={handleWsSave} disabled={!wsNameInput.trim()} className="flex-1 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg transition-colors">Salvar</button>
+                  <button onClick={() => { setShowWsSave(false); setWsNameInput('') }} className="px-3 py-1 text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 rounded-lg transition-colors" title="Cancelar"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg></button>
                 </div>
               </div>
             )}
@@ -378,9 +442,19 @@ export default function Sidebar(props: SidebarProps) {
               <div className="space-y-0.5 mt-1">
                 {workspaces.map(ws => (
                   <div key={ws.id} className="flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 group">
-                    <button onClick={() => onLoadWorkspace(ws.id)} className="flex-1 text-left text-xs text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white truncate">{ws.name}</button>
+                    <button onClick={() => onLoadWorkspace(ws.id)} className="flex-1 text-left text-xs text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white truncate" title={`Carregar: ${ws.name}`}>{ws.name}</button>
+                    {/* Export button */}
+                    <button onClick={() => onExportWorkspace(ws.id)} className="text-gray-300 dark:text-slate-600 hover:text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Exportar workspace">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6v8m0 0l-3-3m3 3l3-3"/><path d="M3 3h10"/></svg>
+                    </button>
+                    {/* Overwrite (save over) button */}
+                    <button onClick={() => setWsOverwritePending({ id: ws.id, name: ws.name })} className="text-gray-300 dark:text-slate-600 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Sobrescrever este workspace">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
+                    </button>
+                    <button onClick={() => setWsDeletePending({ id: ws.id, name: ws.name })} className="text-gray-300 dark:text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Excluir workspace">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+                    </button>
                     <span className="text-[10px] text-gray-400 dark:text-slate-600 shrink-0">{new Date(ws.saved_at).toLocaleDateString('pt-BR')}</span>
-                    <button onClick={() => onDeleteWorkspace(ws.id)} className="text-gray-300 dark:text-slate-600 hover:text-red-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity px-1">✕</button>
                   </div>
                 ))}
               </div>
@@ -390,8 +464,14 @@ export default function Sidebar(props: SidebarProps) {
 
         {/* Visualização */}
         <Section id="visualizacao" title="Visualização" collapsed={isSectionCollapsed('visualizacao')} onToggle={toggleSection}>
-          <ToggleBtn active={showEdges} onClick={onToggleEdges}><span>⟷</span> Relações</ToggleBtn>
-          <ToggleBtn active={showLabels} onClick={onToggleLabels}><span>🏷</span> Labels das relações</ToggleBtn>
+          <ToggleBtn active={showEdges} onClick={onToggleEdges}>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 8h12M10 4l4 4-4 4"/></svg>
+            Relações
+          </ToggleBtn>
+          <ToggleBtn active={showLabels} onClick={onToggleLabels}>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="10" height="8" rx="1"/><path d="M11 6l3-2v8l-3-2"/></svg>
+            Labels das relações
+          </ToggleBtn>
         </Section>
 
         {/* Navegação */}
@@ -418,10 +498,12 @@ export default function Sidebar(props: SidebarProps) {
               <span>↺</span> Reorganizar (dagre)
             </button>
             <button onClick={onGroupLayout} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors">
-              <span>🔲</span> Agrupar por tipo
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+              Agrupar por tipo
             </button>
             <button onClick={onSnowflakeLayout} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors">
-              <span>❄</span> Snowflake schema
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1v14M1 8h14M3.05 3.05l9.9 9.9M12.95 3.05l-9.9 9.9"/></svg>
+              Snowflake schema
             </button>
           </div>
         </Section>
@@ -468,7 +550,7 @@ export default function Sidebar(props: SidebarProps) {
             ) : (
               tables.map(row => (
                 <div key={row.name} className="flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 group">
-                  <button onClick={() => onFocusTable(row.name)} className={`flex-1 text-left text-xs truncate px-1 py-0.5 transition-colors ${row.visible ? 'text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white' : 'text-gray-400 dark:text-slate-600 line-through'}`} title="Focar tabela no canvas">
+                  <button onClick={() => { onFocusTable(row.name); onSearch('') }} className={`flex-1 text-left text-xs truncate px-1 py-0.5 transition-colors ${row.visible ? 'text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white' : 'text-gray-400 dark:text-slate-600 line-through'}`} title="Focar tabela no canvas">
                     {row.name}
                   </button>
                   {docs[row.name] && (
@@ -485,5 +567,119 @@ export default function Sidebar(props: SidebarProps) {
 
       </div>
     </aside>
+
+    {wsOverwritePending && createPortal(
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        onClick={() => setWsOverwritePending(null)}
+      >
+        <div
+          className={`w-80 rounded-xl shadow-2xl border overflow-hidden ${
+            darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+          }`}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${
+            darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0"><path d="M8 2L1 14h14L8 2z"/><line x1="8" y1="7" x2="8" y2="10"/><line x1="8" y1="12" x2="8" y2="12.5"/></svg>
+            <span className={`text-sm font-semibold ${
+              darkMode ? 'text-slate-100' : 'text-gray-800'
+            }`}>Sobrescrever workspace</span>
+          </div>
+          {/* Body */}
+          <div className="px-4 py-3">
+            <p className={`text-xs ${
+              darkMode ? 'text-slate-400' : 'text-gray-500'
+            }`}>
+              Tem certeza que deseja sobrescrever o workspace{' '}
+              <span className={`font-semibold ${
+                darkMode ? 'text-slate-200' : 'text-gray-800'
+              }`}>"{wsOverwritePending.name}"</span>?
+              Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          {/* Footer */}
+          <div className={`flex justify-end gap-2 px-4 py-2.5 border-t ${
+            darkMode ? 'border-slate-700' : 'border-gray-100'
+          }`}>
+            <button
+              onClick={() => setWsOverwritePending(null)}
+              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                darkMode
+                  ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+              }`}
+            >Cancelar</button>
+            <button
+              onClick={() => {
+                onSaveWorkspace(wsOverwritePending.name, wsOverwritePending.id)
+                setWsOverwritePending(null)
+              }}
+              className="px-4 py-1.5 text-xs font-medium rounded-lg transition-colors bg-indigo-600 hover:bg-indigo-500 text-white"
+            >Sobrescrever</button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {wsDeletePending && createPortal(
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        onClick={() => setWsDeletePending(null)}
+      >
+        <div
+          className={`w-80 rounded-xl shadow-2xl border overflow-hidden ${
+            darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+          }`}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${
+            darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0"><polyline points="3,5 4,14 12,14 13,5"/><path d="M1 5h14"/><path d="M6 5V3h4v2"/></svg>
+            <span className={`text-sm font-semibold ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>Excluir workspace</span>
+          </div>
+          <div className="px-4 py-3">
+            <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+              Tem certeza que deseja excluir o workspace{' '}
+              <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-gray-800'}`}>"{wsDeletePending.name}"</span>?
+              Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          <div className={`flex justify-end gap-2 px-4 py-2.5 border-t ${darkMode ? 'border-slate-700' : 'border-gray-100'}`}>
+            <button
+              onClick={() => setWsDeletePending(null)}
+              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+              }`}
+            >Cancelar</button>
+            <button
+              onClick={() => { onDeleteWorkspace(wsDeletePending.id); setWsDeletePending(null) }}
+              className="px-4 py-1.5 text-xs font-medium rounded-lg transition-colors bg-red-600 hover:bg-red-500 text-white"
+            >Excluir</button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    <input
+      ref={importWsRef}
+      type="file"
+      accept=".json"
+      className="hidden"
+      onChange={e => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = ev => { onImportWorkspace(ev.target?.result as string) }
+        reader.readAsText(file)
+        e.target.value = ''
+      }}
+    />
+    </>
   )
 }

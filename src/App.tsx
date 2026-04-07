@@ -21,6 +21,7 @@ import AnimatedDashedEdge from './components/AnimatedDashedEdge'
 import SidePanel from './components/SidePanel'
 import Sidebar from './components/Sidebar'
 import LandingScreen from './components/LandingScreen'
+import DbmlEditorModal from './components/DbmlEditorModal'
 import { useDbmlParser } from './hooks/useDbmlParser'
 import { computeLayout } from './hooks/useLayout'
 import { computeGroupLayout, computeSnowflakeLayout, type LayoutResult } from './hooks/useAutoLayout'
@@ -61,6 +62,8 @@ function AppInner() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [schemaHistory, setSchemaHistory] = useState<SchemaEntry[]>([])
   const [currentContent, setCurrentContent] = useState<string | null>(null)
+  const [showDbmlEditor, setShowDbmlEditor] = useState(false)
+  const [docsModal, setDocsModal] = useState<{ title: string; lines: string[]; ok: boolean } | null>(null)
 
   // Group drag/edit mode
   const [editableGroups, setEditableGroups] = useState<Set<string>>(new Set())
@@ -192,6 +195,15 @@ function AppInner() {
   // Auto-load last workspace on mount
   useEffect(() => {
     const init = async () => {
+      // Always try to load docs at startup
+      try {
+        const docsRes = await fetch('/api/docs')
+        if (docsRes.ok) {
+          const docsData = await docsRes.json()
+          if (docsData.docs && Object.keys(docsData.docs).length > 0) setDocs(docsData.docs)
+        }
+      } catch {}
+
       await refreshWorkspaceList()
       const lastId = await wsHook.getLastWorkspaceId()
       if (!lastId) return
@@ -217,20 +229,21 @@ function AppInner() {
         }))
       return nds
     })
+    const notes = schemaId ? await positionsHook.fetchAllNotes() : {}
     return {
       schemaContent: currentContent ?? '',
       schemaId: schemaId ?? '',
       nodePositions,
-      notes: {},
+      notes,
       docOverrides,
       hiddenTables: [...hiddenTables],
       hasDocs: Object.keys(docs).length > 0,
     }
-  }, [currentContent, schemaId, docOverrides, hiddenTables, docs, setNodes])
+  }, [currentContent, schemaId, docOverrides, hiddenTables, docs, setNodes, positionsHook])
 
-  const handleSaveWorkspace = useCallback(async (name: string) => {
+  const handleSaveWorkspace = useCallback(async (name: string, existingId?: string) => {
     const data = await captureWorkspaceData()
-    const id = `ws_${simpleHash(name + Date.now())}`
+    const id = existingId ?? `ws_${simpleHash(name + Date.now())}`
     const ws: Workspace = { id, name, savedAt: new Date().toISOString(), ...data }
     await wsHook.saveWorkspace(ws)
     await refreshWorkspaceList()
@@ -241,16 +254,28 @@ function AppInner() {
     setDocOverrides(ws.docOverrides ?? {})
     setHiddenTables(new Set(ws.hiddenTables ?? []))
     await buildGraph(ws.schemaContent, ws.schemaId, ws.nodePositions)
-    // Auto-load docs if they were loaded when workspace was saved
-    if (ws.hasDocs) {
-      try {
-        const res = await fetch('/api/docs')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.docs) setDocs(data.docs)
+    // Restore notes to DB
+    if (ws.notes && ws.schemaId) {
+      for (const [tableName, noteItems] of Object.entries(ws.notes)) {
+        for (const note of noteItems as import('./types').NoteItem[]) {
+          try {
+            await fetch(`/api/notes/${encodeURIComponent(ws.schemaId)}/${encodeURIComponent(tableName)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(note),
+            })
+          } catch {}
         }
-      } catch {}
+      }
     }
+    // Auto-load docs (always try — not only when workspace had them)
+    try {
+      const res = await fetch('/api/docs')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.docs && Object.keys(data.docs).length > 0) setDocs(data.docs)
+      }
+    } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -263,6 +288,32 @@ function AppInner() {
   const handleDeleteWorkspace = useCallback(async (id: string) => {
     await wsHook.deleteWorkspace(id)
     await refreshWorkspaceList()
+  }, [wsHook, refreshWorkspaceList])
+
+  const handleExportWorkspace = useCallback(async (id: string) => {
+    const ws = await wsHook.loadWorkspace(id)
+    if (!ws) return
+    const json = JSON.stringify(ws, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `workspace-${ws.name.replace(/[^a-z0-9]/gi, '_')}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }, [wsHook])
+
+  const handleImportWorkspace = useCallback(async (data: string) => {
+    try {
+      const ws = JSON.parse(data) as import('./types').Workspace
+      if (!ws.id || !ws.name || !ws.schemaContent) throw new Error('Arquivo inválido')
+      // Give it a fresh ID to avoid collisions
+      ws.id = `ws_${simpleHash(ws.name + Date.now())}`
+      ws.savedAt = new Date().toISOString()
+      await wsHook.saveWorkspace(ws)
+      await refreshWorkspaceList()
+    } catch (e) {
+      setDocsModal({ ok: false, title: 'Erro ao importar workspace', lines: [String(e)] })
+    }
   }, [wsHook, refreshWorkspaceList])
 
   // ── Group edit mode ────────────────────────────────────────────────────────
@@ -304,19 +355,34 @@ function AppInner() {
     const groupNames = [...new Set(parsed.tables.map(t => t.group).filter(Boolean) as string[])]
     const groupColors = buildGroupColors(groupNames)
 
+    // When no saved positions exist and groups are declared, default to group layout
+    let defaultGroupBoxes: Record<string, { x: number; y: number; width: number; height: number }> | null = null
     const layoutPositions = forcePositions
       ? Object.fromEntries(forcePositions.map(p => [p.id, { x: p.x, y: p.y }]))
-      : Object.keys(savedPositions).length > 0 ? savedPositions : computeLayout(parsed)
+      : Object.keys(savedPositions).length > 0
+        ? savedPositions
+        : groupNames.length > 0
+          ? (() => {
+              const r = computeGroupLayout(parsed)
+              defaultGroupBoxes = r.groupBoxes
+              return r.tablePositions
+            })()
+          : computeLayout(parsed)
 
     const newNodes: Node[] = []
 
     groupNames.forEach((gName, i) => {
       const forced = forcePositions?.find(p => p.id === `group__${gName}`)
+      const autoBox = defaultGroupBoxes ? (defaultGroupBoxes as any)[gName] : null
       const gId = `group__${gName}`
       newNodes.push({
         id: gId,
         type: 'groupNode',
-        position: forced ? { x: forced.x, y: forced.y } : { x: 0, y: 0 },
+        position: forced
+          ? { x: forced.x, y: forced.y }
+          : autoBox
+            ? { x: autoBox.x, y: autoBox.y }
+            : { x: 0, y: 0 },
         zIndex: -1,
         data: {
           groupName: gName,
@@ -326,7 +392,10 @@ function AppInner() {
         } satisfies GroupNodeData,
         draggable: false,
         selectable: false,
-        style: { width: forced?.w ?? 200, height: forced?.h ?? 200 },
+        style: {
+          width: forced?.w ?? autoBox?.width ?? 200,
+          height: forced?.h ?? autoBox?.height ?? 200,
+        },
       })
     })
 
@@ -412,18 +481,30 @@ function AppInner() {
   // ── Layout ─────────────────────────────────────────────────────────────────
   const applyLayout = useCallback((result: LayoutResult) => {
     setNodes(nds => { pushUndo(snapshotNodes(nds)); return nds })
+    const centerSet = result.centerTables ? new Set(result.centerTables) : null
     setNodes(nds => nds.map(n => {
       if (n.type === 'tableNode') {
         const pos = result.tablePositions[n.id]
+        // Update snowflake-center marker (clear for non-snowflake layouts)
+        const newData = { ...n.data, isSnowflakeCenter: centerSet ? centerSet.has(n.id) : false }
         if (pos) {
           if (schemaId) fetch(`/api/positions/${encodeURIComponent(schemaId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table_name: n.id, x: pos.x, y: pos.y }) }).catch(() => {})
-          return { ...n, position: pos }
+          return { ...n, position: pos, data: newData }
         }
+        return { ...n, data: newData }
       }
       if (n.type === 'groupNode') {
         const key = n.id.replace('group__', '')
         const box = result.groupBoxes[key]
-        if (box) return { ...n, position: { x: box.x, y: box.y }, style: { ...n.style, width: box.width, height: box.height } }
+        // Set both top-level width/height AND style so React Flow resets
+        // any internally tracked dimensions from NodeResizer edits.
+        if (box) return {
+          ...n,
+          position: { x: box.x, y: box.y },
+          width: box.width,
+          height: box.height,
+          style: { ...n.style, width: box.width, height: box.height },
+        }
       }
       return n
     }))
@@ -438,6 +519,14 @@ function AppInner() {
 
   const handleGroupLayout = useCallback(() => { if (schema) applyLayout(computeGroupLayout(schema)) }, [schema, applyLayout])
   const handleSnowflakeLayout = useCallback(() => { if (schema) applyLayout(computeSnowflakeLayout(schema)) }, [schema, applyLayout])
+
+  const handleEditDbml = useCallback(async (content: string) => {
+    setCurrentContent(content)
+    const id = schemaId ?? `hash_${simpleHash(content)}`
+    setSchemaId(id)
+    await buildGraph(content, id)
+    setShowDbmlEditor(false)
+  }, [schemaId, buildGraph])
 
   // ── PNG Export ─────────────────────────────────────────────────────────────
   const handleSavePng = useCallback(async () => {
@@ -516,11 +605,15 @@ function AppInner() {
         if (extra.length) msgs.push(`Extras: ${extra.slice(0, 3).join(', ')}${extra.length > 3 ? ` +${extra.length - 3}` : ''}`)
         const total = schema.tables.length
         const covered = total - missing.length
-        alert(`Documentação carregada: ${covered}/${total} tabelas cobertas.\n${msgs.join('\n') || 'Todas as tabelas têm documentação! ✓'}`)
+        setDocsModal({
+          ok: true,
+          title: `Documentação carregada: ${covered}/${total} tabelas`,
+          lines: msgs.length ? msgs : ['Todas as tabelas têm documentação!'],
+        })
       }
       if (data.warning) console.warn('[docs]', data.warning)
     } catch (e) {
-      alert(`Erro ao carregar docs: ${e}`)
+      setDocsModal({ ok: false, title: 'Erro ao carregar docs', lines: [String(e)] })
     }
   }, [schema])
 
@@ -561,7 +654,8 @@ function AppInner() {
     }))
     setEdges(eds => eds.map(e => {
       const isActive = e.source === selectedNodeId || e.target === selectedNodeId
-      if (isActive) return { ...e, type: 'animatedDashed', zIndex: 10, data: { ...(e.data ?? {}), showLabel: true } }
+      // zIndex 0 keeps edges in SVG layer, below table nodes (zIndex 1) — lines pass behind nodes
+      if (isActive) return { ...e, type: 'animatedDashed', zIndex: 0, data: { ...(e.data ?? {}), showLabel: true } }
       return { ...e, type: 'smoothstep', zIndex: 0, style: { stroke: '#475569', strokeWidth: 1, opacity: 0.15 } }
     }))
   }, [selectedNodeId, schema, setNodes, setEdges])
@@ -618,7 +712,15 @@ function AppInner() {
   if (!schema) {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <LandingScreen onParse={handleParse} parseError={parseError} />
+        <LandingScreen onParse={handleParse} parseError={parseError} onOpenEditor={() => setShowDbmlEditor(true)} />
+        {showDbmlEditor && (
+          <DbmlEditorModal
+            content={currentContent ?? ''}
+            darkMode={darkMode}
+            onApply={handleEditDbml}
+            onClose={() => setShowDbmlEditor(false)}
+          />
+        )}
       </div>
     )
   }
@@ -629,6 +731,7 @@ function AppInner() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(v => !v)}
         onOpenFile={() => filePickerRef.current?.click()}
+        onOpenDbmlEditor={() => setShowDbmlEditor(true)}
         onSavePng={handleSavePng}
         schemaHistory={schemaHistory}
         onLoadHistory={handleLoadHistory}
@@ -660,6 +763,8 @@ function AppInner() {
         onSaveWorkspace={handleSaveWorkspace}
         onLoadWorkspace={handleLoadWorkspace}
         onDeleteWorkspace={handleDeleteWorkspace}
+        onExportWorkspace={handleExportWorkspace}
+        onImportWorkspace={handleImportWorkspace}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         isFullscreen={isFullscreen}
@@ -683,7 +788,7 @@ function AppInner() {
           }}
           onEdgeClick={(_, edge) => {
             const refData = (edge.data as any)?.ref
-            if (refData?.fromTable) handleFocusTable(refData.fromTable)
+            if (refData?.toTable) handleFocusTable(refData.toTable)
           }}
           onPaneClick={() => { setSelectedTable(null); setSelectedNodeId(null) }}
           nodeTypes={nodeTypes}
@@ -729,6 +834,57 @@ function AppInner() {
           e.target.value = ''
         }}
       />
+
+      {showDbmlEditor && (
+        <DbmlEditorModal
+          content={currentContent ?? ''}
+          darkMode={darkMode}
+          onApply={handleEditDbml}
+          onClose={() => setShowDbmlEditor(false)}
+        />
+      )}
+
+      {docsModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDocsModal(null)}>
+          <div
+            className={`w-80 rounded-xl shadow-2xl border overflow-hidden ${
+              darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${
+              darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'
+            }`}>
+              {docsModal.ok ? (
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 shrink-0"><polyline points="1.5,8 5.5,12 14.5,4"/></svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-red-400 shrink-0"><circle cx="8" cy="8" r="7"/><line x1="8" y1="5" x2="8" y2="8.5"/><line x1="8" y1="11" x2="8" y2="11.5"/></svg>
+              )}
+              <span className={`text-sm font-semibold ${
+                darkMode ? 'text-slate-100' : 'text-gray-800'
+              }`}>{docsModal.title}</span>
+            </div>
+            {/* Body */}
+            <div className="px-4 py-3 space-y-1">
+              {docsModal.lines.map((l, i) => (
+                <p key={i} className={`text-xs ${
+                  darkMode ? 'text-slate-400' : 'text-gray-500'
+                }`}>{l}</p>
+              ))}
+            </div>
+            {/* Footer */}
+            <div className={`flex justify-end px-4 py-2.5 border-t ${
+              darkMode ? 'border-slate-700' : 'border-gray-100'
+            }`}>
+              <button
+                onClick={() => setDocsModal(null)}
+                className="px-4 py-1.5 text-xs font-medium rounded-lg transition-colors bg-blue-600 hover:bg-blue-500 text-white"
+              >OK</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

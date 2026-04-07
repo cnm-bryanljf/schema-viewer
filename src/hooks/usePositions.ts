@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import type { NoteItem } from '../types'
 
 export function usePositions(schemaId: string | null) {
   const fetchPositions = useCallback(async (): Promise<Record<string, { x: number; y: number }>> => {
@@ -27,26 +28,45 @@ export function usePositions(schemaId: string | null) {
     await fetch(`/api/positions/${encodeURIComponent(schemaId)}`, { method: 'DELETE' })
   }, [schemaId])
 
-  const fetchNote = useCallback(async (tableName: string): Promise<string> => {
-    if (!schemaId) return ''
+  // ── Multi-note API ─────────────────────────────────────────────────────────
+
+  const fetchNotes = useCallback(async (tableName: string): Promise<NoteItem[]> => {
+    if (!schemaId) return []
     try {
       const res = await fetch(`/api/notes/${encodeURIComponent(schemaId)}/${encodeURIComponent(tableName)}`)
-      if (!res.ok) return ''
-      const data = await res.json()
-      return data.note ?? ''
+      if (!res.ok) return []
+      return await res.json()
     } catch {
-      return ''
+      return []
     }
   }, [schemaId])
 
-  const saveNote = useCallback(async (tableName: string, note: string) => {
+  const saveNote = useCallback(async (tableName: string, note: NoteItem): Promise<void> => {
     if (!schemaId) return
     await fetch(`/api/notes/${encodeURIComponent(schemaId)}/${encodeURIComponent(tableName)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note }),
+      body: JSON.stringify(note),
     })
   }, [schemaId])
 
-  return { fetchPositions, savePosition, deletePositions, fetchNote, saveNote }
+  const deleteNote = useCallback(async (tableName: string, noteId: string): Promise<void> => {
+    if (!schemaId) return
+    await fetch(`/api/notes/${encodeURIComponent(schemaId)}/${encodeURIComponent(tableName)}/${encodeURIComponent(noteId)}`, {
+      method: 'DELETE',
+    })
+  }, [schemaId])
+
+  const fetchAllNotes = useCallback(async (): Promise<Record<string, NoteItem[]>> => {
+    if (!schemaId) return {}
+    try {
+      const res = await fetch(`/api/notes/${encodeURIComponent(schemaId)}`)
+      if (!res.ok) return {}
+      return await res.json()
+    } catch {
+      return {}
+    }
+  }, [schemaId])
+
+  return { fetchPositions, savePosition, deletePositions, fetchNotes, saveNote, deleteNote, fetchAllNotes }
 }

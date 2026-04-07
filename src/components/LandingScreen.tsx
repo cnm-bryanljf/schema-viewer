@@ -3,9 +3,10 @@ import { useState, useRef, useCallback } from 'react'
 type Props = {
   onParse: (content: string, filename?: string) => void
   parseError: string | null
+  onOpenEditor: () => void
 }
 
-export default function LandingScreen({ onParse, parseError }: Props) {
+export default function LandingScreen({ onParse, parseError, onOpenEditor }: Props) {
   const [mode, setMode] = useState<'idle' | 'paste'>('idle')
   const [text, setText] = useState('')
   const [dragging, setDragging] = useState(false)
@@ -46,8 +47,15 @@ export default function LandingScreen({ onParse, parseError }: Props) {
         </div>
       )}
 
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-4">🗄️</div>
+      <div className="mb-8 text-center">
+        <div className="flex justify-center mb-4">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400">
+            <rect x="4" y="8" width="56" height="48" rx="4"/>
+            <path d="M4 20h56"/>
+            <path d="M16 32h10M38 32h10M16 40h10M38 40h10M16 48h10M38 48h10"/>
+            <path d="M26 32v16M42 32v16"/>
+          </svg>
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Visualizador de Schema DBML</h1>
         <p className="text-gray-500 dark:text-slate-400">Abra ou cole um arquivo <code className="text-blue-500 dark:text-blue-400">.dbml</code> para visualizar seu schema</p>
       </div>
@@ -58,13 +66,15 @@ export default function LandingScreen({ onParse, parseError }: Props) {
             onClick={() => fileRef.current?.click()}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-900/30"
           >
-            <span>📂</span> Abrir arquivo .dbml
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.707 4.7A1 1 0 0 0 9.414 5H13a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/></svg>
+            Abrir arquivo .dbml
           </button>
           <button
-            onClick={() => setMode('paste')}
+            onClick={onOpenEditor}
             className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 font-semibold rounded-xl border border-gray-200 dark:border-slate-700 transition-colors"
           >
-            <span>📋</span> Colar DBML
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="1" width="8" height="3" rx="1"/><path d="M3 3h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M5 8h6M5 11h4"/></svg>
+            Colar DBML
           </button>
         </div>
       )}

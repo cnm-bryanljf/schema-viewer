@@ -6,7 +6,7 @@ import type { TableNodeData } from '../types'
 const MAX_VISIBLE = 8
 
 function TableNode({ data }: NodeProps) {
-  const { table, dimmed, selectionDimmed, highlightedColumns = [] } = data as TableNodeData
+  const { table, dimmed, selectionDimmed, highlightedColumns = [], isSnowflakeCenter } = data as TableNodeData
   const [expanded, setExpanded] = useState(false)
 
   const color = table.groupColor ?? '#64748b'
@@ -16,8 +16,10 @@ function TableNode({ data }: NodeProps) {
   const hasHighlight = highlightedColumns.length > 0
   const opacity = selectionDimmed ? 0.15 : dimmed ? 0.2 : 1
 
-  const borderColor = hasHighlight ? '#ef4444' : 'rgba(255,255,255,0.1)'
-  const boxShadow = hasHighlight ? '0 0 0 2px #ef4444, 0 0 12px #ef444455' : undefined
+  const borderColor = hasHighlight ? '#ef4444' : isSnowflakeCenter ? '#ef444477' : 'rgba(255,255,255,0.1)'
+  const boxShadow = hasHighlight
+    ? '0 0 0 2px #ef4444, 0 0 12px #ef444455'
+    : isSnowflakeCenter ? '0 0 0 1.5px #ef444488' : undefined
 
   return (
     <div
@@ -48,7 +50,7 @@ function TableNode({ data }: NodeProps) {
               }`}
             >
               {col.pk ? (
-                <span title="Primary Key" className="text-yellow-400 shrink-0">🔑</span>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" title="Primary Key" className="text-yellow-400 shrink-0"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M14 13.5l-3.5-3.5"/><path d="M11.5 11l1.5 1.5"/></svg>
               ) : (
                 <span className="w-4 shrink-0" />
               )}

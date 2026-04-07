@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { ParsedTable, ParsedRef, TableDoc, DocsMap } from '../types'
+import type { ParsedTable, ParsedRef, TableDoc, DocsMap, NoteItem } from '../types'
 import { usePositions } from '../hooks/usePositions'
 
 type Tab = 'columns' | 'relations' | 'notes'
@@ -36,7 +36,7 @@ function ColumnRow({
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
       >
-        {col.pk && <span className="text-yellow-500 dark:text-yellow-400 shrink-0">🔑</span>}
+        {col.pk && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" title="Primary Key" className="text-yellow-500 dark:text-yellow-400 shrink-0"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M14 13.5l-3.5-3.5"/><path d="M11.5 11l1.5 1.5"/></svg>}
         {!col.pk && <span className="w-4 shrink-0" />}
         <span className="text-gray-800 dark:text-slate-200 font-medium truncate flex-1">{col.name}</span>
         <span className="text-gray-500 dark:text-slate-400 font-mono shrink-0">{col.type}</span>
@@ -72,31 +72,144 @@ function ColumnRow({
 
 // ── Main SidePanel ────────────────────────────────────────────────────────────
 
+// ── Note card (single note item) ─────────────────────────────────────────────
+
+function NoteCard({
+  note,
+  index,
+  onSave,
+  onDelete,
+  p,
+}: {
+  note: NoteItem
+  index: number
+  onSave: (updated: NoteItem) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+  p: Record<string, string>
+}) {
+  const [title, setTitle] = useState(note.title)
+  const [content, setContent] = useState(note.content)
+  const [saving, setSaving] = useState(false)
+  const dirty = title !== note.title || content !== note.content
+
+  const handleSave = async () => {
+    setSaving(true)
+    await onSave({ ...note, title, content })
+    setSaving(false)
+  }
+
+  return (
+    <div className={`rounded-lg border ${p.header} mb-2 overflow-hidden`}>
+      {/* Note header */}
+      <div className={`flex items-center gap-1 px-2 py-1 border-b ${p.toolbar}`}>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder={`Nota ${index + 1}`}
+          className={`flex-1 text-xs font-medium bg-transparent focus:outline-none placeholder-gray-400 dark:placeholder-slate-500 text-gray-800 dark:text-slate-200`}
+        />
+        <button
+          onClick={() => onDelete(note.id)}
+          className={`shrink-0 text-xs px-1.5 py-0.5 rounded ${p.btn} hover:text-red-500 transition-colors`}
+          title="Excluir nota"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+            <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+      {/* Content */}
+      <textarea
+        value={content}
+        onChange={e => setContent(e.target.value)}
+        placeholder="Conteúdo da nota..."
+        className={`w-full text-xs ${p.noteArea} px-2 py-1.5 resize-none focus:outline-none border-0`}
+        rows={4}
+      />
+      {/* Save button */}
+      <div className={`flex items-center justify-between px-2 py-1 border-t ${p.toolbar}`}>
+        <span className={`text-[10px] ${p.textMuted}`}>
+          {note.updatedAt ? new Date(note.updatedAt).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : ''}
+        </span>
+        <button
+          onClick={handleSave}
+          disabled={!dirty || saving}
+          className="text-xs px-3 py-0.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors"
+        >
+          {saving ? 'Salvando...' : dirty ? 'Salvar' : 'Salvo ✓'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Main SidePanel ────────────────────────────────────────────────────────────
+
 export default function SidePanel({ table, refs, schemaId, docs, onClose, onFocusTable, onDocEdit, darkMode }: Props & { darkMode?: boolean }) {
   const [tab, setTab] = useState<Tab>('columns')
-  const [note, setNote] = useState('')
+  const [notes, setNotes] = useState<NoteItem[]>([])
   const [editMode, setEditMode] = useState(false)
   const [showAllSummaries, setShowAllSummaries] = useState(false)
   const [localDoc, setLocalDoc] = useState<Partial<TableDoc>>({})
   const [navStack, setNavStack] = useState<string[]>([])
-  const { fetchNote, saveNote } = usePositions(schemaId)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { fetchNotes, saveNote, deleteNote } = usePositions(schemaId)
+
+  // ── Markdown sync helper ───────────────────────────────────────────────────
+  const patchTableMarkdown = useCallback(async (tableName: string, patch: {
+    overview?: string
+    columns?: { name: string; summary: string }[]
+    notes?: NoteItem[]
+  }) => {
+    try {
+      await fetch(`/api/docs/${encodeURIComponent(tableName)}/patch`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          overview: patch.overview,
+          columns: patch.columns,
+          notes: patch.notes?.map(n => ({ title: n.title, content: n.content })),
+        }),
+      })
+    } catch { /* silent if no markdown file */ }
+  }, [])
 
   useEffect(() => {
     if (!table) return
-    fetchNote(table.name).then(setNote)
+    fetchNotes(table.name).then(setNotes)
     setLocalDoc({})
     setEditMode(false)
     setShowAllSummaries(false)
-  }, [table?.name, fetchNote])
+  }, [table?.name, fetchNotes])
 
-  const handleNoteChange = (val: string) => {
-    setNote(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      if (table) saveNote(table.name, val)
-    }, 500)
-  }
+  const handleAddNote = useCallback(() => {
+    if (!table) return
+    const now = new Date().toISOString()
+    const newNote: NoteItem = {
+      id: `note_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: '',
+      content: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+    setNotes(prev => [...prev, newNote])
+  }, [table])
+
+  const handleSaveNote = useCallback(async (updated: NoteItem) => {
+    if (!table) return
+    const savedNote = { ...updated, updatedAt: new Date().toISOString() }
+    await saveNote(table.name, savedNote)
+    const newNotes = notes.map(n => n.id === updated.id ? savedNote : n)
+    setNotes(newNotes)
+    await patchTableMarkdown(table.name, { notes: newNotes })
+  }, [table, saveNote, notes, patchTableMarkdown])
+
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    if (!table) return
+    await deleteNote(table.name, noteId)
+    const newNotes = notes.filter(n => n.id !== noteId)
+    setNotes(newNotes)
+    await patchTableMarkdown(table.name, { notes: newNotes })
+  }, [table, deleteNote, notes, patchTableMarkdown])
 
   const handleSummaryChange = useCallback((colName: string, summary: string) => {
     setLocalDoc(prev => {
@@ -116,6 +229,15 @@ export default function SidePanel({ table, refs, schemaId, docs, onClose, onFocu
     if (!table) return
     onDocEdit(table.name, localDoc)
     setEditMode(false)
+    // Sync to markdown file
+    const markdownPatch: { overview?: string; columns?: { name: string; summary: string }[] } = {}
+    if (localDoc.overview !== undefined) markdownPatch.overview = localDoc.overview
+    if (localDoc.columns && localDoc.columns.length > 0) {
+      markdownPatch.columns = localDoc.columns.map(c => ({ name: c.name, summary: c.summary }))
+    }
+    if (Object.keys(markdownPatch).length > 0) {
+      patchTableMarkdown(table.name, markdownPatch)
+    }
   }
 
   // Navigation history
@@ -194,8 +316,13 @@ export default function SidePanel({ table, refs, schemaId, docs, onClose, onFocu
       {/* Tabs */}
       <div className={`flex border-b ${p.tab} shrink-0`}>
         {(['columns', 'relations', 'notes'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 text-xs font-medium transition-colors ${tab === t ? `${p.tabActive} border-b-2` : p.tabInactive}`}>
+          <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${tab === t ? `${p.tabActive} border-b-2` : p.tabInactive}`}>
             {t === 'columns' ? 'Colunas' : t === 'relations' ? 'Relações' : 'Notas'}
+            {t === 'notes' && notes.length > 0 && (
+              <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full leading-none ${tab === 'notes' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}>
+                {notes.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -228,7 +355,7 @@ export default function SidePanel({ table, refs, schemaId, docs, onClose, onFocu
                 return (
                   <div key={col.name} className={`border-b ${p.header}`}>
                     <div className="flex items-center gap-2 px-3 py-1.5 text-xs">
-                      {col.pk && <span className="text-yellow-400 shrink-0">🔑</span>}
+                      {col.pk && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400 shrink-0"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M14 13.5l-3.5-3.5"/><path d="M11.5 11l1.5 1.5"/></svg>}
                       {!col.pk && <span className="w-4 shrink-0" />}
                       <span className="text-gray-800 dark:text-slate-200 font-medium truncate flex-1">{col.name}</span>
                       <span className={`${p.text} font-mono shrink-0`}>{col.type}</span>
@@ -299,8 +426,29 @@ export default function SidePanel({ table, refs, schemaId, docs, onClose, onFocu
 
         {tab === 'notes' && (
           <div className="p-3">
-            <textarea value={note} onChange={e => handleNoteChange(e.target.value)} placeholder="Adicione notas sobre esta tabela..." className={`w-full h-64 ${p.noteArea} border text-xs rounded p-2 focus:outline-none focus:border-blue-500 resize-none`} />
-            <p className={`${p.textMuted} text-xs mt-1`}>Salvo automaticamente</p>
+            {notes.length === 0 && (
+              <p className={`text-xs ${p.textMuted} italic text-center py-4`}>Nenhuma nota ainda.</p>
+            )}
+            {notes.map((note, i) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                index={i}
+                onSave={handleSaveNote}
+                onDelete={handleDeleteNote}
+                p={p}
+              />
+            ))}
+            <button
+              onClick={handleAddNote}
+              className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-xs ${p.btn} border border-dashed ${p.header} rounded-lg transition-colors`}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <line x1="5" y1="1" x2="5" y2="9" />
+                <line x1="1" y1="5" x2="9" y2="5" />
+              </svg>
+              Nova nota
+            </button>
           </div>
         )}
       </div>

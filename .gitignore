@@ -1,3 +1,4 @@
 /docs
 *.db
 context.md
+node_modules/
