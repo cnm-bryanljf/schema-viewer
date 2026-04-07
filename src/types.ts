@@ -107,5 +107,6 @@ export type Workspace = {
   notes: Record<string, NoteItem[]>      // tableName → notes array
   docOverrides: Record<string, Partial<TableDoc>>  // tableName → edited fields
   hiddenTables: string[]
-  hasDocs?: boolean                       // whether docs/ were loaded when saved
+  hasDocs?: boolean
+  docs?: DocsMap                          // embedded docs (used in .svx export)
 }

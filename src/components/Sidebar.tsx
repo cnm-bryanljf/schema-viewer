@@ -53,7 +53,7 @@ type SidebarProps = {
 
   // Documentation
   docs: DocsMap
-  onImportDocs: () => void
+  onImportDocs: (files: FileList) => void
 
   // Workspace
   workspaces: WorkspaceEntry[]
@@ -61,6 +61,7 @@ type SidebarProps = {
   onLoadWorkspace: (id: string) => void
   onDeleteWorkspace: (id: string) => void
   onExportWorkspace: (id: string) => void
+  onExportCurrentAsSvx: () => void
   onImportWorkspace: (data: string) => void
 
   // Theme
@@ -197,7 +198,7 @@ export default function Sidebar(props: SidebarProps) {
     search, onSearch,
     tables, onToggleTableVisibility, onFocusTable,
     docs, onImportDocs,
-    workspaces, onSaveWorkspace, onLoadWorkspace, onDeleteWorkspace, onExportWorkspace, onImportWorkspace,
+    workspaces, onSaveWorkspace, onLoadWorkspace, onDeleteWorkspace, onExportWorkspace, onExportCurrentAsSvx, onImportWorkspace,
     darkMode, onToggleDarkMode,
     isFullscreen, onToggleFullscreen,
   } = props
@@ -213,7 +214,7 @@ export default function Sidebar(props: SidebarProps) {
   // Delete confirmation modal
   const [wsDeletePending, setWsDeletePending] = useState<{ id: string; name: string } | null>(null)
   const importWsRef = useRef<HTMLInputElement>(null)
-  const [openingFolder, setOpeningFolder] = useState(false)
+  const importDocsRef = useRef<HTMLInputElement>(null)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed)
   const hasDocs = Object.keys(docs).length > 0
 
@@ -227,10 +228,6 @@ export default function Sidebar(props: SidebarProps) {
     })
   }
 
-  const handleOpenFolder = async () => {
-    setOpeningFolder(true)
-    try { await fetch('/api/docs/open-folder', { method: 'POST' }) } finally { setOpeningFolder(false) }
-  }
 
   /** Save workspace with duplicate-name guard */
   const handleWsSave = () => {
@@ -309,7 +306,42 @@ export default function Sidebar(props: SidebarProps) {
     <aside className="flex flex-col bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 h-full shrink-0 overflow-hidden" style={{ width: 280 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-slate-700 shrink-0">
-        <span className="font-bold text-gray-900 dark:text-white text-sm">Schema Viewer</span>
+        <div className="flex items-center gap-1.5">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="20" height="20" className="shrink-0">
+            <defs>
+              <linearGradient id="sidebarCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor:'#00d2ff',stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#3a7bd5',stopOpacity:1}} />
+              </linearGradient>
+            </defs>
+            <g stroke="url(#sidebarCyanGrad)" strokeWidth="1.5" fill="none">
+              <path d="M50 15 L80 32.5 L80 67.5 L50 85 L20 67.5 L20 32.5 Z" />
+              <line x1="50" y1="15" x2="50" y2="35" />
+              <line x1="80" y1="32.5" x2="62" y2="40" />
+              <line x1="80" y1="67.5" x2="62" y2="60" />
+              <line x1="50" y1="85" x2="50" y2="65" />
+              <line x1="20" y1="67.5" x2="38" y2="60" />
+              <line x1="20" y1="32.5" x2="38" y2="40" />
+            </g>
+            <g stroke="url(#sidebarCyanGrad)" strokeWidth="1.5" fill="none">
+              <ellipse cx="50" cy="40" rx="12" ry="5" />
+              <line x1="38" y1="40" x2="38" y2="60" />
+              <line x1="62" y1="40" x2="62" y2="60" />
+              <path d="M38 60 Q50 65 62 60" />
+              <path d="M38 47 Q50 52 62 47" />
+              <path d="M38 54 Q50 59 62 54" />
+            </g>
+            <g fill="white" stroke="url(#sidebarCyanGrad)" strokeWidth="1.5">
+              <circle cx="50" cy="15" r="3" />
+              <circle cx="80" cy="32.5" r="3" />
+              <circle cx="80" cy="67.5" r="3" />
+              <circle cx="50" cy="85" r="3" />
+              <circle cx="20" cy="67.5" r="3" />
+              <circle cx="20" cy="32.5" r="3" />
+            </g>
+          </svg>
+          <span className="font-bold text-gray-900 dark:text-white text-sm">Schema Viewer</span>
+        </div>
         <div className="flex items-center gap-1">
           {/* Dark mode toggle */}
           <button
@@ -375,22 +407,18 @@ export default function Sidebar(props: SidebarProps) {
             {hasDocs ? (
               <div className="flex items-center gap-2 px-2 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700/40 rounded-lg">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 dark:text-green-400 shrink-0"><polyline points="1.5,6 4.5,9 10.5,3"/></svg>
-                <span className="text-green-700 dark:text-green-300 text-xs flex-1">{Object.keys(docs).length} arquivo(s) em docs/</span>
-                <button onClick={onImportDocs} className="text-xs text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors" title="Recarregar docs">↺</button>
+                <span className="text-green-700 dark:text-green-300 text-xs flex-1">{Object.keys(docs).length} tabela(s) documentada(s)</span>
+                <button onClick={() => importDocsRef.current?.click()} className="text-xs text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors" title="Importar mais .md">↺</button>
               </div>
             ) : (
               <div className="px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-lg">
-                <p className="text-xs text-amber-700 dark:text-amber-300">Pasta <code className="font-mono">docs/</code> sem arquivos.</p>
-                <p className="text-xs text-amber-500 mt-0.5">Adicione arquivos .md e clique em carregar.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">Nenhuma documentação carregada.</p>
+                <p className="text-xs text-amber-500 mt-0.5">Faça upload de arquivos .md abaixo.</p>
               </div>
             )}
-            <button onClick={onImportDocs} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs rounded-lg border border-dashed border-gray-300 dark:border-slate-600 transition-colors">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.707 4.7A1 1 0 0 0 9.414 5H13a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/></svg>
-              Usar pasta docs/
-            </button>
-            <button onClick={handleOpenFolder} disabled={openingFolder} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 disabled:opacity-50 text-gray-500 dark:text-slate-400 text-xs rounded-lg transition-colors">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 11V5a1 1 0 0 1 1-1h3l2 2h7a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z"/></svg>
-              {openingFolder ? 'Abrindo...' : 'Abrir pasta docs/ no explorador'}
+            <button onClick={() => importDocsRef.current?.click()} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs rounded-lg border border-dashed border-gray-300 dark:border-slate-600 transition-colors">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M3 12h10"/></svg>
+              Importar arquivos .md
             </button>
             <button onClick={handleDownloadTemplate} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-400 text-xs rounded-lg transition-colors">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v8m0 0l-3-3m3 3l3-3"/><path d="M3 13h10"/></svg>
@@ -403,13 +431,18 @@ export default function Sidebar(props: SidebarProps) {
         <Section id="workspace" title="Workspace" collapsed={isSectionCollapsed('workspace')} onToggle={toggleSection}>
           <div className="px-2 space-y-1">
             {!showWsSave ? (
-              <div className="flex gap-1">
-                <button onClick={() => setShowWsSave(true)} className="flex-1 flex items-center gap-2 px-2 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors">
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
-                  Salvar workspace
+              <div className="flex gap-1 w-full">
+                <button onClick={() => setShowWsSave(true)} className="flex-1 flex items-center justify-center gap-1.5 py-1 bg-indigo-700 hover:bg-indigo-600 text-white text-xs rounded-lg transition-colors">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 14V9h6v5"/><path d="M5 2v4h5"/></svg>
+                  Salvar
                 </button>
-                <button onClick={() => importWsRef.current?.click()} className="flex items-center gap-1 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors border border-gray-200 dark:border-slate-700" title="Importar workspace">
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M3 12h10"/><path d="M2 14h12a1 1 0 0 0 1-1v-1H1v1a1 1 0 0 0 1 1z"/></svg>
+                <button onClick={onExportCurrentAsSvx} className="flex-1 flex items-center justify-center gap-1 py-1 bg-teal-700 hover:bg-teal-600 text-white text-xs rounded-lg transition-colors" title="Exportar estado atual como .svx">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6v8m0 0l-3-3m3 3l3-3"/><path d="M3 3h10"/></svg>
+                  .svx
+                </button>
+                <button onClick={() => importWsRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 py-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors border border-gray-200 dark:border-slate-700" title="Importar .svx">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M3 12h10"/><path d="M2 14h12a1 1 0 0 0 1-1v-1H1v1a1 1 0 0 0 1 1z"/></svg>
+                  .svx
                 </button>
               </div>
             ) : wsDuplicateId ? (
@@ -502,7 +535,22 @@ export default function Sidebar(props: SidebarProps) {
               Agrupar por tipo
             </button>
             <button onClick={onSnowflakeLayout} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg transition-colors">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1v14M1 8h14M3.05 3.05l9.9 9.9M12.95 3.05l-9.9 9.9"/></svg>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                {/* vertical */}
+                <line x1="8" y1="1" x2="8" y2="15"/>
+                {/* horizontal */}
+                <line x1="1" y1="8" x2="15" y2="8"/>
+                {/* diagonal ↗↙ */}
+                <line x1="3.2" y1="3.2" x2="12.8" y2="12.8"/>
+                {/* diagonal ↖↘ */}
+                <line x1="12.8" y1="3.2" x2="3.2" y2="12.8"/>
+                {/* branch tips — vertical axis */}
+                <line x1="8" y1="1" x2="6" y2="3"/><line x1="8" y1="1" x2="10" y2="3"/>
+                <line x1="8" y1="15" x2="6" y2="13"/><line x1="8" y1="15" x2="10" y2="13"/>
+                {/* branch tips — horizontal axis */}
+                <line x1="1" y1="8" x2="3" y2="6"/><line x1="1" y1="8" x2="3" y2="10"/>
+                <line x1="15" y1="8" x2="13" y2="6"/><line x1="15" y1="8" x2="13" y2="10"/>
+              </svg>
               Snowflake schema
             </button>
           </div>
@@ -669,7 +717,7 @@ export default function Sidebar(props: SidebarProps) {
     <input
       ref={importWsRef}
       type="file"
-      accept=".json"
+      accept=".svx"
       className="hidden"
       onChange={e => {
         const file = e.target.files?.[0]
@@ -677,6 +725,19 @@ export default function Sidebar(props: SidebarProps) {
         const reader = new FileReader()
         reader.onload = ev => { onImportWorkspace(ev.target?.result as string) }
         reader.readAsText(file)
+        e.target.value = ''
+      }}
+    />
+    <input
+      ref={importDocsRef}
+      type="file"
+      accept=".md"
+      multiple
+      className="hidden"
+      onChange={e => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+        onImportDocs(files)
         e.target.value = ''
       }}
     />

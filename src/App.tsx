@@ -26,7 +26,7 @@ import { useDbmlParser } from './hooks/useDbmlParser'
 import { computeLayout } from './hooks/useLayout'
 import { computeGroupLayout, computeSnowflakeLayout, type LayoutResult } from './hooks/useAutoLayout'
 import { usePositions } from './hooks/usePositions'
-import { verifyDocs } from './hooks/useDocParser'
+import { verifyDocs, parseDocFile } from './hooks/useDocParser'
 import { useWorkspace } from './hooks/useWorkspace'
 import type { ParsedTable, ParsedRef, SchemaEntry, TableVisibilityRow, GroupNodeData, DocsMap, TableDoc, Workspace } from './types'
 
@@ -43,6 +43,34 @@ function simpleHash(str: string): string {
   let h = 0
   for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0 }
   return Math.abs(h).toString(16).slice(0, 8)
+}
+
+async function compressSvx(payload: object): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload))
+  const cs = new CompressionStream('gzip')
+  const writer = cs.writable.getWriter()
+  writer.write(bytes)
+  writer.close()
+  const buf = await new Response(cs.readable).arrayBuffer()
+  // btoa with chunks to avoid call-stack limit on large payloads
+  const u8 = new Uint8Array(buf)
+  let bin = ''
+  for (let i = 0; i < u8.length; i += 8192) {
+    bin += String.fromCharCode(...u8.subarray(i, i + 8192))
+  }
+  return `SVX1:${btoa(bin)}`
+}
+
+async function decompressSvx(data: string): Promise<object> {
+  if (!data.startsWith('SVX1:')) throw new Error('Arquivo inválido: prefixo SVX1 ausente')
+  const bin = atob(data.slice(5))
+  const u8 = Uint8Array.from(bin, c => c.charCodeAt(0))
+  const ds = new DecompressionStream('gzip')
+  const writer = ds.writable.getWriter()
+  writer.write(u8)
+  writer.close()
+  const text = await new Response(ds.readable).text()
+  return JSON.parse(text)
 }
 
 // ── Main app ──────────────────────────────────────────────────────────────────
@@ -195,15 +223,6 @@ function AppInner() {
   // Auto-load last workspace on mount
   useEffect(() => {
     const init = async () => {
-      // Always try to load docs at startup
-      try {
-        const docsRes = await fetch('/api/docs')
-        if (docsRes.ok) {
-          const docsData = await docsRes.json()
-          if (docsData.docs && Object.keys(docsData.docs).length > 0) setDocs(docsData.docs)
-        }
-      } catch {}
-
       await refreshWorkspaceList()
       const lastId = await wsHook.getLastWorkspaceId()
       if (!lastId) return
@@ -238,6 +257,7 @@ function AppInner() {
       docOverrides,
       hiddenTables: [...hiddenTables],
       hasDocs: Object.keys(docs).length > 0,
+      docs,
     }
   }, [currentContent, schemaId, docOverrides, hiddenTables, docs, setNodes, positionsHook])
 
@@ -251,9 +271,13 @@ function AppInner() {
 
   const restoreWorkspace = useCallback(async (ws: Workspace) => {
     if (!ws.schemaContent) return
+    setSchemaId(ws.schemaId ?? null)
+    setCurrentContent(ws.schemaContent)
     setDocOverrides(ws.docOverrides ?? {})
     setHiddenTables(new Set(ws.hiddenTables ?? []))
     await buildGraph(ws.schemaContent, ws.schemaId, ws.nodePositions)
+    // Re-apply hidden tables after buildGraph resets them
+    if (ws.hiddenTables?.length) setHiddenTables(new Set(ws.hiddenTables))
     // Restore notes to DB
     if (ws.notes && ws.schemaId) {
       for (const [tableName, noteItems] of Object.entries(ws.notes)) {
@@ -268,14 +292,8 @@ function AppInner() {
         }
       }
     }
-    // Auto-load docs (always try — not only when workspace had them)
-    try {
-      const res = await fetch('/api/docs')
-      if (res.ok) {
-        const data = await res.json()
-        if (data.docs && Object.keys(data.docs).length > 0) setDocs(data.docs)
-      }
-    } catch {}
+    // Restore embedded docs if present
+    if (ws.docs && Object.keys(ws.docs).length > 0) setDocs(ws.docs)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -293,28 +311,53 @@ function AppInner() {
   const handleExportWorkspace = useCallback(async (id: string) => {
     const ws = await wsHook.loadWorkspace(id)
     if (!ws) return
-    const json = JSON.stringify(ws, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `workspace-${ws.name.replace(/[^a-z0-9]/gi, '_')}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
+    try {
+      const svx = await compressSvx(ws)
+      const blob = new Blob([svx], { type: 'text/plain' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${ws.name.replace(/[^a-z0-9]/gi, '_')}.svx`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch (e) {
+      setDocsModal({ ok: false, title: 'Erro ao exportar', lines: [String(e)] })
+    }
   }, [wsHook])
+
+  const handleExportCurrentAsSvx = useCallback(async () => {
+    const data = await captureWorkspaceData()
+    const name = `schema_${new Date().toISOString().slice(0, 10)}`
+    try {
+      const svx = await compressSvx({ ...data, id: `ws_${simpleHash(name + Date.now())}`, name, savedAt: new Date().toISOString() })
+      const blob = new Blob([svx], { type: 'text/plain' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${name}.svx`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch (e) {
+      setDocsModal({ ok: false, title: 'Erro ao exportar', lines: [String(e)] })
+    }
+  }, [captureWorkspaceData])
 
   const handleImportWorkspace = useCallback(async (data: string) => {
     try {
-      const ws = JSON.parse(data) as import('./types').Workspace
-      if (!ws.id || !ws.name || !ws.schemaContent) throw new Error('Arquivo inválido')
-      // Give it a fresh ID to avoid collisions
-      ws.id = `ws_${simpleHash(ws.name + Date.now())}`
+      let ws: import('./types').Workspace
+      if (data.startsWith('SVX1:')) {
+        ws = await decompressSvx(data) as import('./types').Workspace
+      } else {
+        ws = JSON.parse(data) as import('./types').Workspace
+      }
+      if (!ws.schemaContent) throw new Error('Arquivo inválido')
+      ws.id = `ws_${simpleHash((ws.name ?? 'import') + Date.now())}`
       ws.savedAt = new Date().toISOString()
       await wsHook.saveWorkspace(ws)
       await refreshWorkspaceList()
+      await restoreWorkspace(ws)
     } catch (e) {
-      setDocsModal({ ok: false, title: 'Erro ao importar workspace', lines: [String(e)] })
+      setDocsModal({ ok: false, title: 'Erro ao importar', lines: [String(e)] })
     }
-  }, [wsHook, refreshWorkspaceList])
+  }, [wsHook, refreshWorkspaceList, restoreWorkspace])
 
   // ── Group edit mode ────────────────────────────────────────────────────────
   const handleToggleGroupEdit = useCallback((groupId: string) => {
@@ -592,14 +635,24 @@ function AppInner() {
   }, [schema])
 
   // ── Docs ──────────────────────────────────────────────────────────────────
-  const handleImportDocs = useCallback(async () => {
+  const handleImportDocs = useCallback(async (files: FileList) => {
     try {
-      const res = await fetch('/api/docs')
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data: { docs: DocsMap; warning: string | null } = await res.json()
-      setDocs(data.docs)
+      const newDocs: DocsMap = { ...docs }
+      const readFile = (f: File): Promise<string> => new Promise((res, rej) => {
+        const r = new FileReader()
+        r.onload = e => res(e.target?.result as string)
+        r.onerror = rej
+        r.readAsText(f)
+      })
+      for (const file of Array.from(files)) {
+        if (!file.name.endsWith('.md')) continue
+        const content = await readFile(file)
+        const doc = parseDocFile(file.name, content)
+        newDocs[doc.tableName] = doc
+      }
+      setDocs(newDocs)
       if (schema) {
-        const { missing, extra } = verifyDocs(data.docs, schema.tables.map(t => t.name))
+        const { missing, extra } = verifyDocs(newDocs, schema.tables.map(t => t.name))
         const msgs: string[] = []
         if (missing.length) msgs.push(`Sem doc: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` +${missing.length - 5}` : ''}`)
         if (extra.length) msgs.push(`Extras: ${extra.slice(0, 3).join(', ')}${extra.length > 3 ? ` +${extra.length - 3}` : ''}`)
@@ -611,11 +664,10 @@ function AppInner() {
           lines: msgs.length ? msgs : ['Todas as tabelas têm documentação!'],
         })
       }
-      if (data.warning) console.warn('[docs]', data.warning)
     } catch (e) {
       setDocsModal({ ok: false, title: 'Erro ao carregar docs', lines: [String(e)] })
     }
-  }, [schema])
+  }, [schema, docs])
 
   const handleDocEdit = useCallback((tableName: string, patch: Partial<TableDoc>) => {
     setDocOverrides(prev => ({ ...prev, [tableName]: { ...(prev[tableName] ?? {}), ...patch } }))
@@ -712,7 +764,7 @@ function AppInner() {
   if (!schema) {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <LandingScreen onParse={handleParse} parseError={parseError} onOpenEditor={() => setShowDbmlEditor(true)} />
+        <LandingScreen onParse={handleParse} parseError={parseError} onOpenEditor={() => setShowDbmlEditor(true)} onImportSvx={handleImportWorkspace} />
         {showDbmlEditor && (
           <DbmlEditorModal
             content={currentContent ?? ''}
@@ -720,6 +772,25 @@ function AppInner() {
             onApply={handleEditDbml}
             onClose={() => setShowDbmlEditor(false)}
           />
+        )}
+        {docsModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDocsModal(null)}>
+            <div className="w-80 rounded-xl shadow-2xl border overflow-hidden bg-slate-900 border-slate-700" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b bg-slate-800 border-slate-700">
+                {docsModal.ok
+                  ? <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 shrink-0"><polyline points="1.5,8 5.5,12 14.5,4"/></svg>
+                  : <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-red-400 shrink-0"><circle cx="8" cy="8" r="7"/><line x1="8" y1="5" x2="8" y2="8.5"/><line x1="8" y1="11" x2="8" y2="11.5"/></svg>
+                }
+                <span className="text-sm font-semibold text-slate-100">{docsModal.title}</span>
+              </div>
+              <div className="px-4 py-3 space-y-1">
+                {docsModal.lines.map((l, i) => <p key={i} className="text-xs text-slate-400">{l}</p>)}
+              </div>
+              <div className="flex justify-end px-4 py-2.5 border-t border-slate-700">
+                <button onClick={() => setDocsModal(null)} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors">OK</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     )
@@ -764,6 +835,7 @@ function AppInner() {
         onLoadWorkspace={handleLoadWorkspace}
         onDeleteWorkspace={handleDeleteWorkspace}
         onExportWorkspace={handleExportWorkspace}
+        onExportCurrentAsSvx={handleExportCurrentAsSvx}
         onImportWorkspace={handleImportWorkspace}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -794,6 +866,7 @@ function AppInner() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
+          proOptions={{ hideAttribution: true }}
           colorMode={darkMode ? 'dark' : 'light'}
           style={{ width: '100%', height: '100%' }}
         >
@@ -805,6 +878,8 @@ function AppInner() {
               if (n.type === 'tableNode') return schema.tables.find(tb => tb.name === n.id)?.groupColor ?? '#475569'
               return '#334155'
             }}
+            zoomable
+            pannable
           />
         </ReactFlow>
       </div>
