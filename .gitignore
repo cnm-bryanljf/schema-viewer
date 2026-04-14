@@ -22,3 +22,4 @@ docs.md
 
 # Outros arquivos que não devem ser versionados
 package-lock.json
+generate_docs.py
