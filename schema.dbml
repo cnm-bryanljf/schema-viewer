@@ -1,50 +1,6503 @@
-// Schema de exemplo — Schema Viewer
-
-TableGroup Usuarios {
-  users
-  user_roles
+Table tb_ad_history {
+  id bigint [pk]
+  ad_id int [not null]
+  customer_id int [not null]
+  user_id int
+  segment varchar(50) [not null]
+  origin varchar(50) [not null]
+  action varchar(50) [not null]
+  changed_fields json
 }
 
-TableGroup Pedidos {
-  orders
-  order_items
+Table tb_ad_metadata {
+  ad_id int
+  segment varchar(20)
+  show_history json
+  created_at datetime
+  updated_at datetime
 }
 
-Table users {
-  id         int           [pk, increment]
-  name       varchar(120)  [not null]
-  email      varchar(255)  [not null, unique]
-  created_at timestamp     [not null, default: `now()`]
-
-  Note: 'Tabela principal de usuários'
+Table tb_analise_imovel_conta {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  data_contrato date
+  qtd_total decimal(32,0)
+  maior_pontuacao float
+  menor_pontuacao float
+  media_pontuacao double
+  problema_descricao int
+  sem_fotos int
+  poucas_fotos int
+  sem_endereco int
+  sem_numero int
+  sem_quarto_sala int
+  sem_banheiro int
+  sem_garagem int
+  sem_area_util int
+  sem_video int
+  sem_valor int
+  sem_valor_condominio int
+  sem_area_comum int
+  sem_area_privativa int
+  qtd_imoveis_contatos int
+  max_contatos int
+  min_contatos int
+  visualizacao_telefone int
+  proposta int
+  financiar int
+  whatsapp int
+  agendar_visita int
+  total_contato int
+  total_proposta int
+  media_contato decimal(9,4)
+  media_proposta decimal(9,4)
+  leads int
+  imoveis int
+  ativo int
+  revisao int
+  inativo int
+  destaque int
+  integracao int
+  qtd_imoveis int
+  qtd_destaque int
 }
 
-Table user_roles {
-  id      int         [pk, increment]
-  user_id int         [not null, ref: > users.id]
-  role    varchar(50) [not null, note: 'admin | editor | viewer']
+Table tb_analise_imovel_contato {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  id_imovel_tipo int [not null]
+  id_bairro int
+  id_cidade int
+  finalidade1 char(1)
+  qtd_imoveis int [not null]
+  maximo_por_imovel int
+  minimo_por_imovel int
+  visualizacao_telefone int
+  proposta int
+  financiar int
+  whatsapp int
+  agendar_visita int
+  total_contato int
+  total_proposta int
+  media_contato decimal(6,2)
+  media_proposta decimal(6,2)
+  leads int
 }
 
-Table orders {
-  id         int           [pk, increment]
-  user_id    int           [not null, ref: > users.id]
-  total      decimal(10,2) [not null]
-  status     varchar(30)   [not null, default: 'pending']
-  created_at timestamp     [not null, default: `now()`]
+Table tb_analise_imovel_leads {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  id_imovel_tipo int [not null]
+  id_bairro int
+  id_cidade int
+  finalidade1 char(1)
+  qtd_leads int [not null]
 }
 
-Table order_items {
-  id         int           [pk, increment]
-  order_id   int           [not null, ref: > orders.id]
-  product    varchar(200)  [not null]
-  quantity   int           [not null]
-  unit_price decimal(10,2) [not null]
+Table tb_analise_imovel_plano {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  integracao int [not null]
+  id_imovel_plano_assinatura int [not null]
+  qtd_imoveis int [not null]
+  qtd_destaque int [not null]
+  data_alteracao datetime
 }
 
-Table products {
-  id          int           [pk, increment]
-  name        varchar(200)  [not null]
-  description text
-  price       decimal(10,2) [not null]
-  stock       int           [not null, default: 0]
+Table tb_analise_imovel_qualidade {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  id_imovel_tipo int [not null]
+  id_bairro int
+  id_cidade int
+  finalidade1 char(1)
+  qtd_imoveis int [not null]
+  maior_pontuacao float
+  menor_pontuacao float
+  media double
+  problema_descricao int
+  sem_fotos int
+  poucas_fotos int
+  sem_endereco int
+  sem_numero int
+  sem_quarto_sala int
+  sem_banheiro int
+  sem_garagem int
+  sem_area_util int
+  sem_video int
+  sem_valor int
+  sem_valor_condominio int
+  sem_area_comum int
+  sem_area_privativa int
+}
+
+Table tb_analise_imovel_quantidade {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  id_imovel_tipo int
+  id_bairro int
+  id_cidade int
+  finalidade1 char(1)
+  imoveis int [not null]
+  planos int [not null]
+  ativo int
+  revisao int
+  inativo int
+  destaque int
+}
+
+Table tb_analise_veiculo_conta {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  data_contrato date
+  qtd_total decimal(32,0)
+  maior_pontuacao float
+  menor_pontuacao float
+  media_pontuacao double
+  problema_descricao int
+  sem_fotos int
+  poucas_fotos int
+  sem_video int
+  sem_valor int
+  sem_quilometragem int
+  sem_opcionais int
+  sem_outras_informacoes int
+  qtd_imoveis_contatos int
+  max_contatos int
+  min_contatos int
+  visualizacao_telefone int
+  proposta int
+  financiar int
+  whatsapp int
+  total_contato int
+  total_proposta int
+  media_contato decimal(8,4)
+  media_proposta decimal(8,4)
+  leads int
+  veiculos int
+  ativo int
+  revisao int
+  inativo int
+  destaque int
+  integracao int
+  qtd_veiculos int
+  qtd_destaque int
+  data_alteracao datetime
+}
+
+Table tb_analise_veiculo_contato {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  tipo_veiculo char(1)
+  id_marca int
+  id_modelo int
+  id_cidade int
+  qtd_veiculos int [not null]
+  maximo_por_veiculo int
+  minimo_por_veiculo int
+  visualizacao_telefone int
+  proposta int
+  financiar int
+  whatsapp int
+  total_contato int
+  total_proposta int
+  media_contato decimal(6,2)
+  media_proposta decimal(6,2)
+  leads int
+  data_alteracao datetime
+}
+
+Table tb_analise_veiculo_leads {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  tipo_veiculo char(1)
+  id_marca int
+  id_modelo int
+  id_cidade int
+  qtd_leads int [not null]
+  data_alteracao datetime
+}
+
+Table tb_analise_veiculo_plano {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  integracao int [not null]
+  id_veiculo_plano_assinatura int [not null]
+  qtd_veiculos int [not null]
+  qtd_destaque int [not null]
+  data_alteracao datetime
+}
+
+Table tb_analise_veiculo_qualidade {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  tipo_veiculo char(1) [not null]
+  id_marca int
+  id_modelo int
+  id_cidade int [not null]
+  qtd_veiculos int [not null]
+  maior_pontuacao float
+  menor_pontuacao float
+  media double
+  problema_descricao int
+  sem_fotos int
+  poucas_fotos int
+  sem_video int
+  sem_valor int
+  sem_quilometragem int
+  sem_opcionais int
+  sem_outras_informacoes int
+}
+
+Table tb_analise_veiculo_quantidade {
+  id int [pk]
+  data_referencia date [not null]
+  id_cliente int [not null]
+  tipo_veiculo char(1) [not null]
+  id_marca int [not null]
+  id_modelo int [not null]
+  id_cidade int [not null]
+  veiculos int [not null]
+  planos int [not null]
+  ativo int
+  revisao int
+  inativo int
+  destaque int
+}
+
+Table tb_autenticacao_log {
+  id int [pk]
+  id_cliente int
+  email varchar(200)
+  ip varchar(50)
+  evento varchar(6)
+  tipo varchar(6)
+  user_agent varchar(250)
+  data_hora datetime
+  id_user int
+  chave varchar(100)
+  status varchar(7)
+}
+
+Table tb_cidade {
+  id int [pk]
+  id_uf int [not null]
+  nome_cidade varchar(255)
+  deleted int [not null]
+  lat varchar(30)
+  lng varchar(30)
+  landing_page int [not null]
+  ligacao char(2) [not null]
+  url varchar(200)
+  cod_ibge int
+  location_path varchar(255)
+  population int
+  analyze_content tinyint [not null]
+  is_capital tinyint
+}
+
+Table tb_bairro {
+  id int [pk]
+  id_cidade int [not null]
+  nome_bairro varchar(255) [not null]
+  deleted int [not null]
+  id_bairro_sinonimo int
+  id_bairro_pai int
+  destaque int
+  id_cidade_zona int
+  ligacao char(2) [not null]
+  data_cadastro datetime
+  url varchar(255)
+  lat varchar(30)
+  lng varchar(30)
+}
+
+Table tb_bairro_info {
+  id int [pk]
+  id_bairro varchar(100) [not null]
+  valor_medio_venda decimal(9,2)
+  valor_medio_locacao decimal(9,2)
+  imagem_fundo varchar(100)
+  imagem_miniatura varchar(100)
+  visao_geral text [not null]
+  transporte text
+  cultura_lazer text
+  gastronomia text
+  educacao_saude text
+  comercio_servicos text
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  id_bairro_veja1 int
+  id_bairro_veja2 int
+  id_bairro_veja3 int
+  id_bairro_veja4 int
+}
+
+Table tb_bairro_sugestao_lat_lng {
+  id int [pk]
+  id_bairro int
+  lat varchar(300)
+  lng varchar(300)
+}
+
+Table tb_bairro_vizinho {
+  id int [pk]
+  id_bairro int [not null]
+  id_bairro_vizinho int
+  distancia int
+  data_cadastro datetime
+}
+
+Table tb_cidade_regiao_bairro {
+  id_cidade_regiao int
+  id_bairro int
+  deleted int [not null]
+}
+
+Table tb_cidade_nao_encontrada {
+  id int [pk]
+  id_uf int
+  nome varchar(255)
+  id_cliente int
+  verificado int [not null]
+  deleted int [not null]
+}
+
+Table tb_bairro_imovel {
+  id int [pk]
+  qtd int [not null]
+  id_bairro int [not null]
+  nome_bairro varchar(255)
+  nome_bairro_busca varchar(255)
+  id_cidade int [not null]
+  nome_cidade varchar(255)
+  sigla_uf varchar(2)
+  sinonimo int
+  data_alteracao datetime
+  nome_bairro_cidade varchar(500)
+  slug_bairro_cidade varchar(500)
+  nome_cidade_bairro varchar(500)
+}
+
+Table tb_bairro_nao_encontrado {
+  id int [pk]
+  id_cidade int
+  nome varchar(255)
+  verificado int [not null]
+  id_bairro_atual int
+  deleted int [not null]
+  id_cliente int
+  status_imovel int
+  dados text
+  data_cadastro datetime
+}
+
+Table tb_bairro_nao_encontrado_dados {
+  id int [pk]
+  id_bairro_nao_encontrado int
+  dados text
+  deleted int
+}
+
+Table tb_bairro_info_foto {
+  id int [pk]
+  id_bairro_info int [not null]
+  imagem varchar(100)
+  ordem int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  legenda varchar(200)
+}
+
+Table tb_bairro_info_opiniao {
+  id int [pk]
+  id_bairro_info int [not null]
+  nome varchar(100) [not null]
+  email varchar(150) [not null]
+  transporte float
+  cultura_lazer float
+  gastronomia float
+  educacao float
+  saude float
+  comercio_servicos float
+  pontos_positivos text
+  pontos_negativos text
+  comentarios text
+  aprovado int [not null]
+  id_usuario_aprovou int
+  data_aprovacao datetime
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_bairro_sinonimo {
+  id int [pk]
+  id_bairro int [not null]
+  nome varchar(255)
+  exibir_front int [not null]
+  deleted int [not null]
+}
+
+Table tb_banco {
+  id int [pk]
+  nome varchar(255) [not null]
+  data_criacao datetime [not null]
+  ativo tinyint [not null]
+}
+
+Table tb_base_email_segmentado {
+  id int [pk]
+  nome varchar(100)
+  email varchar(50)
+  sexo char(1)
+  data_nascimento char(8)
+  deleted int
+  enviado int
+}
+
+Table tb_financeiro_contrato {
+  id int [pk]
+  id_cliente int [not null]
+  id_plano_assinatura_valor int
+  id_vendedor int [not null]
+  data_contrato date [not null]
+  data_inicio_veiculacao date
+  dia_vencimento int
+  valor_mensalidade decimal(9,2)
+  desconto_adimplencia decimal(9,2)
+  observacoes text
+  arquivo_contrato varchar(100)
+  arquivo_pv varchar(100)
+  arquivo_cnpj varchar(100)
+  cancelado int [not null]
+  data_cancelamento datetime
+  id_usuario_cancelou int
+  data_cadastro date [not null]
+  deleted int [not null]
+  cobrar_juros int [not null]
+  dados_boleto_personalizado int [not null]
+  linha1_boleto varchar(120)
+  linha2_boleto varchar(120)
+  linha3_boleto varchar(120)
+  id_motivo_cancelamento int
+  status int [not null]
+  tipo_contrato int [not null]
+  valor_mensalidade_original decimal(9,2)
+  desconto_adimplencia_original decimal(9,2)
+  id_representante int
+  fidelidade int
+  verificado int
+  id_usuario_verificou int
+  data_verificacao datetime
+  id_usuario_alterou int
+  data_alteracao datetime
+  id_cliente_indicacao int
+  id_empresa_contrato int
+  id_empresa_boletos int
+  id_contrato_pai int
+  billing int [not null]
+  lancamentos int [not null]
+  show_increase_data int
+  discount_percentage_ads decimal(3,2)
+  auction tinyint
+}
+
+Table tb_base_highlights {
+  id int [pk]
+  name varchar(45)
+  highlight_type varchar(2) [not null]
+  id_grupo int
+  id_plan_connection int
+  quantity int
+  value decimal(10,2)
+  deleted tinyint
+  created_at datetime
+  updated_at datetime
+}
+
+Table tb_base_plan {
+  id int [pk]
+  name varchar(45)
+  quantity int
+  value decimal(10,2)
+  plan_type varchar(5)
+  ad_type char(1)
+  locality varchar(3)
+  client_type varchar(2)
+  picture_quantity int
+  video_quantity int
+  deleted tinyint
+  created_at datetime
+  updated_at datetime
+}
+
+Table tb_boleto {
+  id int [pk]
+  id_cliente int [not null]
+  valor decimal(12,2) [not null]
+  valor_desconto_vencimento decimal(12,2)
+  data_vencimento date
+  tipo_plano char(1) [not null]
+  id_plano_cliente int
+  pago int [not null]
+  data_cadastro datetime [not null]
+  data_pagamento datetime
+  mes_referencia int
+  ano_referencia int
+  deleted int [not null]
+  gerado_automaticamente int [not null]
+  tipo_cobranca char(1) [not null]
+  id_mensalidade int
+  order_id char(36)
+  valor_pago decimal(12,2)
+  data_registro_pagamento datetime
+  id_usuario_registro_pagamento int
+  enviado_banco int [not null]
+  observacoes text
+  ultimo int
+  id_anuncio int
+  id_empresa int [not null]
+  qrcode text
+  txid varchar(250)
+  digitable_line varchar(255)
+  deleted_banco_at datetime
+  id_plano_valor int
+}
+
+Table tb_boleto_remessa_boleto {
+  id int [pk]
+  id_boleto_remessa int [not null]
+  id_boleto int [not null]
+}
+
+Table tb_boleto_remessa {
+  id int [pk]
+  data_geracao datetime [not null]
+  id_usuario int [not null]
+}
+
+Table tb_buscador_imovel_filtro {
+  id int [pk]
+  tipo_filtro varchar(50) [not null]
+  frontend_identificacao int [not null]
+  nome varchar(50) [not null]
+  titulo varchar(50)
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+  url varchar(255)
+  tipo_imovel varchar(10)
+  editar_manualmente tinyint [not null]
+}
+
+Table tb_buscador_imovel_filtro_palavra_chave {
+  id int [pk]
+  id_buscador_imovel_filtro int [not null]
+  palavra_chave varchar(50) [not null]
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+}
+
+Table tb_buscador_imovel_filtro_sinonimo {
+  id int [pk]
+  id_buscador_imovel_filtro int [not null]
+  termo varchar(250) [not null]
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+  comentario varchar(200)
+}
+
+Table tb_buscador_veiculo_filtro {
+  id int [pk]
+  tipo_filtro varchar(50) [not null]
+  frontend_identificacao int [not null]
+  id_buscador_veiculo_filtro_pai int
+  nome varchar(50) [not null]
+  titulo varchar(50)
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+  url varchar(255)
+  tipo_veiculo varchar(10)
+  editar_manualmente tinyint [not null]
+}
+
+Table tb_buscador_veiculo_filtro_palavra_chave {
+  id int [pk]
+  id_buscador_veiculo_filtro int [not null]
+  palavra_chave varchar(50) [not null]
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+}
+
+Table tb_buscador_veiculo_filtro_sinonimo {
+  id int [pk]
+  id_buscador_veiculo_filtro int [not null]
+  termo varchar(250) [not null]
+  deleted int [not null]
+  data_criacao datetime [not null]
+  data_alteracao datetime [not null]
+  comentario varchar(200)
+}
+
+Table tb_cancelamentos {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int [not null]
+  tipo_cancelamento int
+  id_user int
+  data_solicitacao_cancelamento datetime
+  data_prevista_cancelamento datetime
+  cancelado tinyint
+  id_motivo_cancelamento tinyint
+}
+
+Table tb_cartao {
+  id int [pk]
+  id_cliente int [not null]
+  valor decimal(12,2) [not null]
+  data_pagamento datetime
+  numero_tid_cartao varchar(25)
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  id_mensalidade_pai int
+  id_empresa int [not null]
+}
+
+Table tb_chamado {
+  id int [pk]
+  id_usuario_criador bigint [not null]
+  id_usuario_responsavel bigint
+  id_cliente bigint [not null]
+  nome_contato varchar(255)
+  email_contato varchar(255)
+  telefone_contato varchar(255)
+  status varchar(50) [not null]
+  tipo varchar(50) [not null]
+  subtipo varchar(50)
+  dt_criacao datetime
+  data_fechamento datetime
+  dt_agenda datetime
+  descricao text
+  observacoes text
+  id_contrato int
+  id_chamado_pai int
+  deleted int
+  id_usuario_fechou int
+}
+
+Table tb_chamado_anexos {
+  id int [pk]
+  tipo varchar(50) [not null]
+  descricao text
+  id_chamado bigint [not null]
+}
+
+Table tb_chamado_tipo {
+  id int [pk]
+  grupo varchar(100) [not null]
+  tipo varchar(100) [not null]
+}
+
+Table tb_cidade_bonificada {
+  id int [pk]
+  id_cidade int
+  deleted varchar(45)
+}
+
+Table tb_cidade_imovel {
+  id int [pk]
+  qtd int [not null]
+  id_cidade int [not null]
+  nome_cidade varchar(255)
+  nome_cidade_busca varchar(255)
+  sigla_uf varchar(2)
+  data_alteracao datetime
+}
+
+Table tb_cidade_regiao {
+  id int [pk]
+  nome_regiao varchar(50) [not null]
+  id_cidade int [not null]
+  deleted int [not null]
+  ligacao varchar(5)
+  url varchar(50)
+  tipo int
+  lat varchar(30)
+  lng varchar(30)
+}
+
+Table tb_cidade_regiao_metropolitana {
+  id int [pk]
+  id_cidade int [not null]
+  id_regioes text [not null]
+}
+
+Table tb_cidade_regiao_metropolitana_new {
+  id_cidade int [not null]
+  id_regiao int [not null]
+}
+
+Table tb_cidade_regiao_sinonima {
+  id int [pk]
+  id_cidade_regiao int [not null]
+  nome varchar(100) [not null]
+  deleted int [not null]
+}
+
+Table tb_cidade_revendedora {
+  id int [pk]
+  id_cidade int [not null]
+  url varchar(45) [not null]
+  fonte varchar(50) [not null]
+}
+
+Table tb_cidade_sinonima {
+  id int [pk]
+  id_cidade int [not null]
+  nome varchar(255)
+  exibir_front int
+  deleted int [not null]
+}
+
+Table tb_cidade_zona {
+  id int [pk]
+  id_cidade int [not null]
+  nome varchar(25)
+  deleted int [not null]
+}
+
+Table tb_cidade_zona_sinonima {
+  id int [pk]
+  id_cidade_zona int [not null]
+  nome varchar(100) [not null]
+  deleted int [not null]
+}
+
+Table tb_cliente {
+  id int [pk]
+  nome varchar(200) [not null]
+  nome_fantasia varchar(200)
+  tipo_pessoa char(2) [not null]
+  tipo_pessoa2 varchar(10)
+  cpfcnpj varchar(18)
+  creci varchar(20)
+  email varchar(200) [not null]
+  senha varchar(200)
+  telefone_fixo varchar(20)
+  telefone_celuar varchar(20)
+  telefone_comercial varchar(20)
+  endereco varchar(200)
+  numero_endereco varchar(10)
+  complemento_endereco varchar(50)
+  bairro_endereco varchar(100)
+  cep_endereco char(9)
+  id_cidade int
+  site varchar(250)
+  token char(50)
+  codigo_executivo varchar(50)
+  receber_promocoes int [not null]
+  ativo int [not null]
+  deleted int [not null]
+  data_cadastro datetime [not null]
+  descricao text
+  logo varchar(250)
+  logo_destaque int [not null]
+  sexo char(1)
+  data_nascimento date
+  data_exclusao datetime
+  sistema_cliente varchar(100)
+  sistema_cliente_observacao text
+  emails_proposta text
+  imagem_mapa varchar(100)
+  link_chat text
+  email_gestor varchar(200)
+  email_cobranca text
+  nome_gestor text
+  nome_contato_cobranca text
+  receber_leads int [not null]
+  sobre text
+  banner_lateral varchar(100)
+  whatsapp_telefone_celular int
+  whatsapp_telefone_fixo int
+  whatsapp_telefone_comercial int
+  operadora_telefone_celular varchar(10)
+  operadora_telefone_fixo varchar(10)
+  operadora_telefone_comercial varchar(10)
+  qtd_leads_recebidos int [not null]
+  leads_tipo_veiculo char(1) [not null]
+  prefixo varchar(30)
+  latitude varchar(30)
+  longitude varchar(30)
+  congelado int [not null]
+  facebook_id varchar(25)
+  facebook_username varchar(50)
+  facebook_link varchar(200)
+  telefones_cobranca text
+  teste int [not null]
+  google_id text
+  apple_id varchar(150)
+  nao_exibir_endereco int
+  data_senha datetime
+  qtd_banner int
+  id_cliente_pai int
+  aceita_visita_virtual int
+  nao_remover_telefones_descricao int
+  telefone_gestor text
+  nome_representante_legal varchar(200)
+  cpf_representante_legal varchar(18)
+  data_nascimento_representante_legal date
+  telefone_representante_legal varchar(20)
+  email_representante_legal varchar(200)
+  nao_exibir_telefone int
+  remover_digito_api_whatsapp int
+  id_empresa_contrato int [not null]
+  id_empresa_boletos int [not null]
+  gera_nfs tinyint [not null]
+  email_nfs tinyint [not null]
+  simular_financiamento tinyint
+  nfs_manual tinyint [not null]
+  deletedAt timestamp
+  updatedAt datetime
+  createdAt datetime
+  sphinx_id varchar(45)
+  search_google_business tinyint
+}
+
+Table tb_cliente_buscas {
+  id int [pk]
+  id_cliente int [not null]
+  descricao varchar(250) [not null]
+  url varchar(500) [not null]
+  tipo char(1) [not null]
+  pagina int [not null]
+  deleted int
+  data_cadastro datetime
+}
+
+Table tb_cliente_congelado_motivo {
+  id int [pk]
+  id_usuario int
+  reason varchar(255)
+  created_at datetime [not null]
+  deleted_at datetime
+}
+
+Table tb_cliente_congelamento {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int
+  data_congelamento datetime [not null]
+  data_descongelamento datetime
+  id_usuario_congelou int
+  id_usuario_descongelou int
+  id_motivo_congelamento int
+  observacao_congelamento varchar(255)
+  deleted int [not null]
+}
+
+Table tb_cliente_filial {
+  id int [pk]
+  id_cliente int
+  nome_filial varchar(300)
+  telefone varchar(90)
+  email varchar(90)
+  endereco varchar(300)
+  complemento varchar(100)
+  id_cidade int
+  id_bairro int
+  id_uf int
+  deleted int
+  nome_extenso_filial varchar(60)
+  email_proposta text
+  data_cadastro datetime
+  id_parceiro_lead int
+  token_lead varchar(45)
+}
+
+Table tb_cliente_foto {
+  id int [pk]
+  id_cliente int [not null]
+  foto varchar(100) [not null]
+  ordem int [not null]
+  data_cadastro datetime [not null]
+}
+
+Table tb_cliente_imobiliaria_ordem {
+  id_cliente int
+  ordem int
+}
+
+Table tb_cliente_leads_na_mao_imovel {
+  id int [pk]
+  id_cliente int [not null]
+  id_imovel_tipo varchar(200) [not null]
+  finalidade_imovel varchar(20) [not null]
+  deleted int [not null]
+}
+
+Table tb_cliente_publicidade {
+  id int [pk]
+  qtd_exibicao int
+  id_cliente int
+  data_cadastro datetime
+  data_alteracao datetime
+}
+
+Table tb_cliente_reset_senha {
+  id int [pk]
+  id_cliente int [not null]
+  token char(200) [not null]
+  data_cadastro datetime
+}
+
+Table tb_cliente_resumo_conteudo {
+  id_cliente int [not null]
+  tipo char(1)
+  id_contrato int [not null]
+  id_integracao int
+  id_parceiro int
+  id_padrao int
+  plano varchar(50)
+  anuncios_plano int
+  destaques_plano int
+  anuncios int
+  destaques int
+  indice_uso_anuncio decimal(4,3)
+  indice_uso_destaque decimal(4,3)
+  data_alteracao datetime
+}
+
+Table tb_comissao_detalhamento {
+  id int [pk]
+  id_comissao_fechada int [not null]
+  id_contrato int [not null]
+  id_contrato_aditivo int
+  id_pagamento int
+  id_cliente int [not null]
+  id_vendedor int
+  novo_valor_mensalidade decimal(12,2)
+  valor_pagamento decimal(12,2)
+  valor_aditivo_antigo decimal(12,2)
+  valor_mensalidade_original decimal(12,2)
+  valor_desconto_adimplencia_aditivo_antigo decimal(12,2)
+  valor_desconto_adimplencia_aditivo decimal(12,2)
+  desconto_adimplencia_original decimal(12,2)
+  desconto_adimplencia decimal(12,2)
+  desconto_adimplencia_aditivo decimal(12,2)
+  valor_total decimal(12,2) [not null]
+  tipo_comissao char(7)
+  valor_base_comissao decimal(12,2) [not null]
+  data_vencimento date
+  data_pagamento date
+  parcela int
+  parcela_label int
+  cpf_cnpj_cliente varchar(18) [not null]
+  excecao tinyint
+}
+
+Table tb_comissao_fechada {
+  id int [pk]
+  id_vendedor int [not null]
+  tipo_fechamento varchar(45) [not null]
+  data_criacao datetime [not null]
+  data_fechamento datetime
+  id_user_fechamento int
+  comissao_vendedor_momento decimal(5,4) [not null]
+  id_supervisor_momento int
+  mes_referencia tinyint [not null]
+  ano_referencia int [not null]
+  comissao_supervisor_momento decimal(5,4)
+  data_inicio date
+  data_fim date
+}
+
+Table tb_configuracao_pre_cadastro_imovel {
+  id int [pk]
+  id_imovel_plano_assinatura_grupo int
+  id_imovel_plano_assinatura_regiao int
+  tipo_anuncio varchar(45)
+  desconto_adimplencia_tempo_vs_valor text
+  qtd_banner_vs_qtd_destaque text
+  tipo_contrato varchar(45)
+  desconto_a_vista_tempo_vs_percentual text
+  data_cadastro datetime
+  data_atualizacao datetime
+  deleted int
+  dias_bonificado int
+}
+
+Table tb_configuracao_pre_cadastro_veiculo {
+  id int [pk]
+  id_veiculo_plano_assinatura_grupo int
+  id_veiculo_plano_assinatura_regiao int
+  tipo_anuncio varchar(45)
+  desconto_adimplencia_tempo_vs_valor text
+  qtd_banner_vs_qtd_destaque text
+  tipo_contrato varchar(45)
+  desconto_a_vista_tempo_vs_percentual text
+  data_cadastro datetime
+  data_atualizacao datetime
+  deleted int
+  dias_bonificado int
+}
+
+Table tb_conta_bancaria {
+  id int [pk]
+  id_banco int [not null]
+  id_empresa int [not null]
+  nome_representante varchar(255) [not null]
+  tipo_representante tinyint [not null]
+  conta varchar(15) [not null]
+  agencia varchar(15) [not null]
+  tipo_conta tinyint [not null]
+  conta_principal tinyint [not null]
+  data_criacao datetime [not null]
+}
+
+Table tb_contato_pj {
+  id int [pk]
+  segment varchar(50)
+  cpf varchar(11)
+  birthdate date
+  email varchar(200)
+  nome varchar(100)
+  nome_responsavel varchar(100)
+  contact_position varchar(255)
+  telefone varchar(255)
+  perfil varchar(40)
+  tipo char(1)
+  campanha varchar(45)
+  id_uf int
+  nome_estado varchar(100)
+  id_cidade int
+  nome_cidade varchar(100)
+  id_bairro int
+  data_contato datetime
+  data_insercao datetime
+  qtd_estoque varchar(200)
+  qtd_estoque_numerico bigint
+  fase varchar(30)
+  data_crm datetime
+  assunto varchar(100)
+  id_cliente int
+  id_vendedor int
+  data_retorno datetime
+  nome_user varchar(100)
+  hash_identificacao varchar(100)
+  site varchar(255)
+  count_duplicado int
+  cliente_antigo tinyint
+  phones json
+  emails json
+  company_name varchar(255)
+  person_type char(2)
+  business_type varchar(50)
+  cnpj varchar(18)
+  relationship varchar(18)
+  is_ex_customer tinyint
+  channel_id int
+  conversion_id int
+  origin_id int
+  notes text
+  deal_status varchar(18)
+  lead_status varchar(18)
+  deal_label varchar(18)
+  deal_flag varchar(18)
+  sale_ads varchar(18)
+  rental_ads varchar(18)
+  id_imovel_plano_assinatura_valor int
+  id_veiculo_plano_assinatura_valor int
+  id_crm_lost_reason int
+  id_lead_group int
+  notification_read int
+  update_expired_leads tinyint
+  plan_value decimal(9,2)
+  tipo_contrato int
+  show_increase_data int
+  crm_company_id int
+  crm_address_id int
+  deleted_at datetime
+  discount_percentage_ads decimal(3,2)
+  auction tinyint
+  custom_info json
+  sanitized tinyint
+  uuid_new_crm char(36)
+  uuid_organization char(36)
+  uuid_contact char(36)
+  check_client tinyint
+}
+
+Table tb_contato_pj_historico {
+  id int [pk]
+  id_contato_pj int [not null]
+  id_user int [not null]
+  data_cadastro datetime [not null]
+  hash_identificacao varchar(100)
+  historico text [not null]
+  data_alteracao datetime
+  deleted int
+  nome_user varchar(100)
+  log_type varchar(20)
+  change_from varchar(255)
+  change_to varchar(255)
+  channel_id int
+  conversion_id int
+  crm_deal_id int
+  id_historico_pai int
+  custom_info json
+  crm_conversation_id int
+}
+
+Table tb_contato_pj_tmp {
+  id int [not null]
+  segment varchar(50)
+  cpf varchar(11)
+  birthdate date
+  email varchar(200)
+  nome varchar(100)
+  nome_responsavel varchar(100)
+  contact_position varchar(255)
+  telefone varchar(255)
+  perfil varchar(40)
+  tipo char(1)
+  campanha varchar(45)
+  id_uf int
+  nome_estado varchar(100)
+  id_cidade int
+  nome_cidade varchar(100)
+  id_bairro int
+  data_contato datetime
+  data_insercao datetime
+  qtd_estoque varchar(200)
+  qtd_estoque_numerico bigint
+  fase varchar(30)
+  data_crm datetime
+  assunto varchar(100)
+  id_cliente int
+  id_vendedor int
+  data_retorno datetime
+  nome_user varchar(100)
+  hash_identificacao varchar(100)
+  site varchar(255)
+  count_duplicado int
+  cliente_antigo tinyint
+  phones json
+  emails json
+  company_name varchar(255)
+  person_type char(2)
+  business_type varchar(50)
+  cnpj varchar(18)
+  relationship varchar(18)
+  is_ex_customer tinyint
+  channel_id int
+  conversion_id int
+  origin_id int
+  notes text
+  deal_status varchar(18)
+  lead_status varchar(18)
+  deal_label varchar(18)
+  deal_flag varchar(18)
+  sale_ads varchar(18)
+  rental_ads varchar(18)
+  id_imovel_plano_assinatura_valor int
+  id_veiculo_plano_assinatura_valor int
+  id_crm_lost_reason int
+  id_lead_group int
+  notification_read int
+  update_expired_leads tinyint
+  plan_value decimal(9,2)
+  tipo_contrato int
+  show_increase_data int
+  crm_company_id int
+  crm_address_id int
+  deleted_at datetime
+  discount_percentage_ads decimal(3,2)
+  auction tinyint
+  custom_info json
+  sanitized tinyint
+  uuid_new_crm char(36)
+  uuid_organization char(36)
+  uuid_contact char(36)
+}
+
+Table tb_contato_tabela_fipe {
+  id int [pk]
+  codigo_fipe varchar(45)
+  id_uf int
+  email varchar(45)
+  nome varchar(45)
+  aceita_promocao int
+  tipo varchar(45)
+}
+
+Table tb_contrato_conversao {
+  id int [pk]
+  id_crm int
+  id_cliente int [not null]
+  id_contrato int
+  crm_deal_id int
+  realty_subscription_id int
+  vehicle_subscription_id int
+  created_at datetime [not null]
+  updated_at datetime
+  uuid_deal char(36)
+}
+
+Table tb_email_atendimento_cliente {
+  id int [pk]
+  id_cliente int
+  id_email_atendimento_tipo int
+  data_envio datetime
+  id_user int
+}
+
+Table tb_email_atendimento_tipo {
+  id int [pk]
+  nome varchar(45)
+  template varchar(45)
+  titulo varchar(45)
+}
+
+Table tb_email_bloqueado {
+  id int [pk]
+  email varchar(200)
+  tipo int
+  data_inclusao datetime
+}
+
+Table tb_email_erro_excecao {
+  id int [pk]
+  email varchar(200) [not null]
+  tipo_bounce varchar(30) [not null]
+  observacao varchar(500) [not null]
+  data_cadastro datetime
+}
+
+Table tb_email_fila {
+  id int [pk]
+  to varchar(200)
+  message text
+  subject varchar(200)
+  format varchar(45)
+  from varchar(200)
+  replyto varchar(200)
+  cc varchar(500)
+  attachment varchar(500)
+  deleted int
+  data_cadastro datetime
+  data_envio datetime
+  data_agendamento datetime
+  tag varchar(45)
+  status int
+}
+
+Table tb_email_log {
+  id int [pk]
+  id_referencia int
+  destino char(1)
+  email varchar(200)
+  tipo varchar(100)
+  data_envio datetime
+  data_evento datetime
+  data_visualizacao datetime
+  data_atualizacao datetime
+  status int
+  tipo_bounce varchar(30)
+  codigo_bounce int
+  tag varchar(200)
+  id_mensagem varchar(100)
+  id_imovel int
+  id_usuario_envio int
+  cc varchar(500)
+  assunto varchar(200)
+}
+
+Table tb_email_log_tratativa {
+  id int [pk]
+  email varchar(200)
+  id_email_log int [not null]
+  tipo int
+  data_acao datetime
+  observacao varchar(500)
+  erro varchar(500)
+  data_evento datetime
+  id_cliente int
+  id_usuario int
+}
+
+Table tb_email_tentativa_bloqueado_log {
+  id int [pk]
+  email varchar(45)
+  motivo varchar(45)
+  horario_tentativa datetime
+  form_origem int
+  id_referencia int
+  id_imovel int
+  ignorar int
+}
+
+Table tb_email_transacional_enviado_interesse {
+  id int [pk]
+  id_cliente int [not null]
+  tipo char(1) [not null]
+  id_referencia int [not null]
+  email_interesse varchar(200)
+  nome_interesse varchar(200)
+  telefone_interesse varchar(20)
+  datahora_envio datetime
+}
+
+Table tb_email_validado {
+  id int [pk]
+  email varchar(200)
+  tipo int
+  data_inclusao datetime
+}
+
+Table tb_empresa {
+  id int [pk]
+  nome varchar(255) [not null]
+  razao_social varchar(255) [not null]
+  cnpj varchar(18) [not null]
+  data_criacao datetime [not null]
+  deleted tinyint [not null]
+  id_bairro int [not null]
+  endereco varchar(200) [not null]
+  numero varchar(200) [not null]
+  complemento varchar(50) [not null]
+  cep char(9) [not null]
+  regime_tributario tinyint [not null]
+  natureza_operacao tinyint [not null]
+  local_prestacao_servico tinyint [not null]
+  aliquota_iss decimal(2,1) [not null]
+}
+
+Table tb_estatistica_uf {
+  id int [pk]
+  id_uf int
+  created_at date
+  qtd_vivareal int
+  qtd_imovelweb int
+  qtd_cnm int
+}
+
+Table tb_estatisticas_estoque {
+  id int [pk]
+  created_at date
+  company varchar(100)
+  vertical varchar(100)
+  location_type varchar(100)
+  location_id int
+  qty_rental int
+  qty_sale int
+  url_sale varchar(255)
+  url_rental varchar(255)
+}
+
+Table tb_estatisticas_historico {
+  id int [pk]
+  data_cadastro datetime
+  ano int
+  periodo int
+  data_inicio datetime
+  data_fim datetime
+  tipo varchar(20)
+  id_indicador int
+  valor decimal(10,0)
+}
+
+Table tb_estatisticas_imovel_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtde_envio_proposta int
+  qtde_solicitacao_telefone int
+  data_cadastro date
+  qtd_agendar_visita int
+  qtd_atendimento_online int
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+  qtd_form_pergunta int [not null]
+  qtd_indicacao_na_mao int
+  total_venda int
+  total_locacao int
+}
+
+Table tb_estatisticas_imovel_diario {
+  id_imovel int [not null]
+  data_cadastro date
+  destaque int [not null]
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtd_agendar_visita int [not null]
+  qtd_atendimento_online int [not null]
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+}
+
+Table tb_estatisticas_imovel_diario2 {
+  id int [pk]
+  id_imovel int [not null]
+  data_cadastro date
+  destaque int [not null]
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtd_agendar_visita int [not null]
+  qtd_atendimento_online int [not null]
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+}
+
+Table tb_estatisticas_imovel_geral {
+  id int [not null]
+  id_imovel int [not null]
+  qtd_visualizacao int [not null]
+  qtd_click int [not null]
+  qtd_visualizacao_telefone int [not null]
+  qtd_solicitacao_ligacao int [not null]
+  qtd_agendar_visita int [not null]
+  qtd_atendimento_online int [not null]
+  qtd_propostas int [not null]
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+  qtd_form_pergunta int [not null]
+}
+
+Table tb_estatisticas_imovel_historico {
+  id int [pk]
+  id_imovel int [not null]
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtde_envio_proposta int
+  qtde_solicitacao_telefone int
+  data_cadastro date
+  qtd_agendar_visita int [not null]
+  qtd_atendimento_online int [not null]
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+}
+
+Table tb_estatisticas_indicador {
+  id int [pk]
+  sigla varchar(100)
+  descricao varchar(255)
+  ord int
+  tipo varchar(45)
+}
+
+Table tb_estatisticas_veiculo {
+  id int [pk]
+  id_veiculo int [not null]
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtde_envio_proposta int
+  qtde_solicitacao_telefone int
+  data_cadastro date
+  qtde_atendimento_online int
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+}
+
+Table tb_estatisticas_veiculo_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int
+  data_cadastro date
+  qtde_visualizacao_busca decimal(32,0)
+  qtde_visualizacao_click decimal(32,0)
+  qtde_visualizacao_telefone decimal(32,0)
+  qtde_envio_proposta decimal(32,0)
+  qtde_solicitacao_telefone decimal(32,0)
+  qtde_atendimento_online decimal(32,0)
+  qtd_proposta decimal(32,0)
+  qtd_financiar decimal(32,0)
+  qtd_whatsapp decimal(32,0)
+  qtd_agendar_visita decimal(32,0)
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+  qtd_form_pergunta int [not null]
+  qtd_indicacao_na_mao int
+  total_venda int
+}
+
+Table tb_estatisticas_veiculo_diario {
+  id int [pk]
+  id_veiculo int [not null]
+  data_cadastro date
+  destaque int [not null]
+  qtde_visualizacao_busca int
+  qtde_visualizacao_click int
+  qtde_visualizacao_telefone int
+  qtde_atendimento_online int
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+  qtd_agendar_visita int
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+}
+
+Table tb_estatisticas_veiculo_geral {
+  id int
+  id_veiculo int [not null]
+  qtd_visualizacao int [not null]
+  qtd_click int [not null]
+  qtd_visualizacao_telefone int [not null]
+  qtd_solicitacao_ligacao int [not null]
+  qtd_propostas int [not null]
+  qtde_atendimento_online int
+  qtd_proposta int
+  qtd_financiar int
+  qtd_whatsapp int
+  qtd_agendar_visita int
+  qtd_form_telefone int [not null]
+  qtd_form_whatsapp int [not null]
+  qtd_form_pergunta int [not null]
+}
+
+Table tb_favorito {
+  id int [pk]
+  id_cliente int [not null]
+  sphinx_id varchar(30)
+  realty_id int
+  vehicle_id int
+  tipo char(1) [not null]
+  id_referencia int [not null]
+  deleted int [not null]
+  data_cadastro datetime [not null]
+}
+
+Table tb_feriado {
+  id int [pk]
+  titulo varchar(100) [not null]
+  fixo int [not null]
+  tipo char(1) [not null]
+  dia int [not null]
+  mes int [not null]
+  ano int
+  id_uf int
+  id_cidade int
+  deleted int [not null]
+}
+
+Table tb_gerencia_link_contrato {
+  id int [pk]
+  id_cliente int
+  link varchar(200)
+  status int
+  id_contrato int
+  data_cadastro datetime
+  data_alteracao datetime
+  data_expiracao datetime
+  deleted int
+  ip_origem varchar(200)
+  ip_ultimo_acesso varchar(200)
+  ip_assinatura varchar(200)
+  id_cidade_assinatura int
+  assinatura_suspeita tinyint [not null]
+  id_usuario_aprovou int
+  ip_aprovacao varchar(200)
+  data_aprovacao datetime
+  data_assinatura datetime
+  motivo text
+  data_agendamento date
+}
+
+Table tb_financeiro_bonificacao {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int
+  motivo varchar(500) [not null]
+  data_novo_vencimento date [not null]
+  data_cadastro datetime
+  id_usuario int [not null]
+  deleted int
+  ativo int
+}
+
+Table tb_financeiro_comissao_venda {
+  id int [pk]
+  id_cliente int
+  id_vendedor int
+  perfil int
+  id_contrato int
+  id_contrato_aditivo int
+  cpfcnpj varchar(18)
+  valor_mensalidade decimal(9,2)
+  desconto_adimplencia decimal(9,2)
+  valor_desconto_aditivo decimal(9,2)
+  data_criacao datetime
+  data_ultima_mensalidade_paga datetime
+  data_ultima_comissao_paga datetime
+  comissao_parcelas int
+  parcelas_pagas int
+  comissao_parcela_inicial int
+  comissao_percentual decimal(5,4)
+  faixas_comissao json
+  tipo_fechamento varchar(20)
+  data_contrato date
+}
+
+Table tb_financeiro_contrato_aditivo {
+  id int [pk]
+  id_contrato int [not null]
+  data_contrato_aditivo date [not null]
+  motivo_aditivo text
+  novo_valor_mensalidade decimal(9,2)
+  novo_desconto_adimplencia decimal(9,2)
+  arquivo_contrato_aditivo varchar(100)
+  id_usuario_adicionou int
+  data_cadastro date [not null]
+  deleted int [not null]
+  id_vendedor int
+  antigo_valor_mensalidade decimal(9,2)
+  antigo_desconto_adimplencia decimal(9,2)
+  id_plano_valor_novo int
+  id_plano_valor_antigo int
+  discount_percentage_ads decimal(3,2)
+  id_igpm int
+  tipo_aditivo varchar(50)
+}
+
+Table tb_financeiro_contrato_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int [not null]
+}
+
+Table tb_financeiro_contrato_pre_cadastro {
+  id int [pk]
+  id_cliente int [not null]
+  id_plano_assinatura_valor int
+  id_vendedor int [not null]
+  data_contrato date [not null]
+  data_inicio_veiculacao date
+  dia_vencimento int [not null]
+  valor_mensalidade decimal(9,2) [not null]
+  desconto_adimplencia decimal(9,2)
+  observacoes text
+  data_cadastro date [not null]
+  cobrar_juros int [not null]
+  dados_boleto_personalizado int [not null]
+  linha1_boleto varchar(120)
+  linha2_boleto varchar(120)
+  linha3_boleto varchar(120)
+  status int [not null]
+  tipo_contrato int [not null]
+  cargo_cliente varchar(45)
+  qtd_imoveis_plano int
+  qtd_destaque_plano int
+  tipo_plano int
+  qtd_estoque int
+  excluir_estoque int [not null]
+  nome_contato varchar(45)
+  arquivo_pv int
+  arquivo_contrato int
+  phonetrack int
+  qtd_banner int [not null]
+  recisao_qtd_meses int
+  show_increase_data int
+  percento_desconto_opcoes_pre_a_vista int
+  total_desconto decimal(9,2)
+  id_dfoursign varchar(500)
+  programado int
+  expansao int
+  modo_entrega int
+  fone_modo_entrega_conta varchar(45)
+  id_usuario_verificou int
+  id_plano_assinatura_tmp int
+  id_cliente_indicacao int
+  id_empresa_contrato int
+  id_empresa_boletos int
+  id_contrato_pai int
+  billing int [not null]
+  lancamentos int [not null]
+  nome_integrador varchar(45)
+  email_integrador varchar(45)
+  telefone_integrador varchar(45)
+  discount_percentage_ads decimal(3,2)
+  auction tinyint
+}
+
+Table tb_financeiro_contrato_pre_cadastro_fila {
+  id int [pk]
+  id_financeiro_contrato_pre_cadastro int
+  data_cadastro datetime
+}
+
+Table tb_financeiro_desconto {
+  id int [pk]
+  id_contrato int [not null]
+  mes_referencia int
+  ano_referencia int
+  numero_parcela_mensalidade int
+  valor_desconto decimal(9,2)
+  valor_desconto_percentual float
+  observacoes text
+  aplicado int [not null]
+  id_usuario_adicionou int
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_financeiro_desconto_acrescimo {
+  id int [pk]
+  id_contrato int [not null]
+  mes_referencia int
+  ano_referencia int
+  numero_parcela_mensalidade int
+  descricao varchar(50)
+  valor decimal(9,2)
+  valor_percentual float
+  observacoes text
+  aplicado int [not null]
+  id_usuario_adicionou int
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  tipo int
+}
+
+Table tb_financeiro_mensalidade {
+  id int [pk]
+  id_contrato int [not null]
+  mes_referencia int [not null]
+  ano_referencia int [not null]
+  periodo_inicial date [not null]
+  periodo_final date [not null]
+  valor_desconto decimal(9,2)
+  valor_desconto_adimplencia decimal(9,2)
+  valor_mensalidade decimal(9,2) [not null]
+  valor_total decimal(9,2) [not null]
+  valor_juros decimal(9,2)
+  valor_multa decimal(9,2)
+  valor_pago decimal(9,2)
+  forma_pagamento varchar(10)
+  pago int [not null]
+  data_vencimento date [not null]
+  data_pagamento date
+  cobrar_juros int [not null]
+  observacoes_automaticas text
+  observacoes text
+  adicionado_automaticamente int [not null]
+  id_usuario_adicionou int
+  id_vendedor int
+  visualizado_cliente int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  id_usuario_marcou_pago int
+  valor_desconto_congelamento decimal(9,2)
+  parcela int
+  data_atualizacao datetime
+  bonificado int
+  id_mensalidade_pai int
+  valor_desconto_adicional decimal(9,2)
+  valor_acrescimo decimal(9,2)
+  renegociacao int
+  multa tinyint
+  atualizacao_automatica tinyint [not null]
+  composicao_valor json
+}
+
+Table tb_financeiro_mensalidade_historico {
+  id int [pk]
+  id_cliente int
+  id_mensalidade int
+  id_contrato int
+  descritivo text [not null]
+  id_usuario_adicionou int
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  cobranca_automatica int [not null]
+}
+
+Table tb_financeiro_cartao_avulso {
+  id int [pk]
+  nome_cliente varchar(100) [not null]
+  valor_total decimal(9,2) [not null]
+  qtd_parcelas int [not null]
+  tipo_parcelamento varchar(5) [not null]
+  descricao varchar(200) [not null]
+  retorno_gateway text
+  status_gateway int
+  id_gateway varchar(100)
+  aprovado int [not null]
+  data_hora_transacao datetime [not null]
+  id_usuario_adicionou int [not null]
+  deleted int [not null]
+}
+
+Table tb_financeiro_contrato_cancelado_motivo {
+  id int [pk]
+  id_usuario int [not null]
+  motivo text [not null]
+  data_criacao datetime
+  ativo int [not null]
+  deleted int [not null]
+}
+
+Table tb_financeiro_contrato_historico {
+  id int [pk]
+  contract_id int [not null]
+  sys_user_id int
+  reason_id int
+  action varchar(50) [not null]
+  created_at datetime [not null]
+}
+
+Table tb_financeiro_contrato_meses_rescisao {
+  id int [pk]
+  qtd_meses int
+  qtd_mensalidade int
+  extenso varchar(45)
+}
+
+Table tb_financeiro_contrato_pre_cadastro_log {
+  id int [pk]
+  id_cliente int
+  data_criacao datetime
+  status varchar(45)
+  msg varchar(500)
+}
+
+Table tb_financeiro_contrato_status {
+  id int [pk]
+  descricao varchar(45) [not null]
+  id_chamado_tipo varchar(45)
+  cobrar int [not null]
+  notificar int [not null]
+  recalcular int
+}
+
+Table tb_financeiro_contrato_status_chamado_tipo {
+  id int [pk]
+  id_status int
+  id_chamado_tipo varchar(45)
+}
+
+Table tb_financeiro_contrato_tipo {
+  id int [pk]
+  nome_tipo varchar(45) [not null]
+  deleted int
+  visivel_pre int
+}
+
+Table tb_financeiro_pagamento_comissao {
+  id int [pk]
+  chave varchar(45)
+  valor_pago decimal(9,2)
+  id_vendedor int
+  tipo_fechamento varchar(45)
+  data_cadastro datetime
+  id_user_fechamento int
+  comissao_vendedor_momento decimal(5,4)
+}
+
+Table tb_forca_atualizacao_elasticsearch {
+  id int [pk]
+  status int
+  id_usuario int
+  tipo_anuncio varchar(45)
+}
+
+Table tb_form_sem_resultados_imovel {
+  id int [pk]
+  nome varchar(90) [not null]
+  email varchar(60) [not null]
+  telefone_fixo varchar(20) [not null]
+  telefone_celular varchar(20)
+  mensagem text
+  finalidade1 varchar(60)
+  id_tipo bigint
+  qtd_quarto int
+  qtd_garagem int
+  qtd_banheiro int
+  valor_minimo decimal(12,2)
+  valor_maximo decimal(12,2)
+  area_minima int
+  area_maxima int
+  id_uf bigint
+  id_cidade bigint
+  id_bairros varchar(100)
+  data datetime [not null]
+  url varchar(255)
+  finalidade2 char(2)
+  origem varchar(10)
+  id_cidades varchar(50)
+}
+
+Table tb_form_sem_resultados_imovel_cliente {
+  id_form_sem_resultados_imovel int [not null]
+  id_cliente int [not null]
+  atendida int
+  visualizado int
+  excluido int
+  data_envio_email datetime
+  respondido int [not null]
+  data_resposta datetime
+  resposta text
+  assunto varchar(150)
+}
+
+Table tb_form_sem_resultados_veiculo_cliente {
+  id_form_sem_resultados_veiculo int [not null]
+  id_cliente int [not null]
+  atendida int
+  visualizado int
+  excluido int
+  data_envio_email datetime
+  respondido int [not null]
+  data_resposta datetime
+  resposta text
+  assunto varchar(150)
+}
+
+Table tb_form_sem_resultados_veiculos {
+  id int [pk]
+  nome varchar(90) [not null]
+  email varchar(60) [not null]
+  telefone_fixo varchar(20) [not null]
+  telefone_celular varchar(20)
+  mensagem text
+  id_marca bigint
+  id_modelo bigint
+  ano_inicial int
+  ano_final int
+  preco_inicial decimal(12,2)
+  preco_final decimal(12,2)
+  quilometragem_inicial int
+  quilometragem_final int
+  id_uf bigint
+  id_cidade bigint
+  data datetime [not null]
+  tipo_veiculo char(1)
+  origem varchar(10)
+  id_cidades varchar(50)
+}
+
+Table tb_galeria_combo {
+  id int [pk]
+  id_imovel_tipo int
+  url_destino varchar(1024) [not null]
+  titulo varchar(100) [not null]
+  subtitulo varchar(100)
+  finalidade1 char(2)
+  finalidade2 char(2)
+  id_uf int
+  id_cidade int
+  id_bairro int
+  qtd_quartos int
+  id_imagem int
+  tipo_anuncio varchar(1) [not null]
+  deleted int [not null]
+  id_marca int
+  id_modelo int
+  tipo_veiculo varchar(1)
+}
+
+Table tb_galeria_url {
+  id int [pk]
+  url_busca text [not null]
+  tipo_anuncio varchar(1) [not null]
+  finalidade1 char(2)
+  finalidade2 char(2)
+  id_imovel_tipo int
+  id_uf int
+  id_cidade int
+  id_bairro int
+  qtd_quartos int
+  id_marca int
+  id_modelo int
+  tipo_veiculo varchar(1)
+  combos json
+  data_cadastro datetime
+  data_validade datetime
+}
+
+Table tb_grupo_pagamento {
+  id int [pk]
+}
+
+Table tb_imagem {
+  id int [pk]
+  tipo varchar(20) [not null]
+  path varchar(1024) [not null]
+  descricao text
+  deleted int [not null]
+}
+
+Table tb_imovel {
+  id int [pk]
+  titulo varchar(200)
+  id_cliente int [not null]
+  finalidade1 char(1) [not null]
+  finalidade2 char(2) [not null]
+  id_imovel_tipo int [not null]
+  area_total float
+  area_util float
+  qtd_quartos int
+  qtd_banheiros int
+  qtd_vagas_garagem int
+  qtd_cozinha int
+  qtd_despensa int
+  qtd_bar int
+  qtd_quarto_empregada int
+  qtd_suites int
+  qtd_varanda int
+  qtd_closet int
+  qtd_area_servico int
+  qtd_lavanderia int
+  qtd_escritorio int
+  qtd_lareira int
+  valor_imovel decimal(12,2)
+  valor_promocional decimal(12,2) [not null]
+  valor_entrada decimal(12,2) [not null]
+  valor_parcelado decimal(12,2) [not null]
+  valor_inicial decimal(12,2) [not null]
+  valor_final decimal(12,2) [not null]
+  qtd_parcelas int [not null]
+  valor_condominio decimal(12,2)
+  valor_iptu decimal(12,2)
+  endereco varchar(200)
+  numero_endereco varchar(10)
+  complemento_endereco varchar(100)
+  cep_endereco char(9)
+  id_cidade int
+  id_bairro int
+  descricao text
+  data_cadastro datetime [not null]
+  ativo int [not null]
+  deleted int [not null]
+  qtd_salas int
+  lancamento int [not null]
+  anuncio_prioridade int [not null]
+  status_lancamento int [not null]
+  conservacao char(1) [not null]
+  qtd_acessos int [not null]
+  bloqueado int [not null]
+  codigo_imovel_cliente varchar(60)
+  referencia varchar(60)
+  idade_imovel int
+  aprovado int
+  revisao int
+  id_cliente_filial int
+  data_alteracao datetime
+  qualidade float
+  nome_bairro_importacao varchar(100)
+  nome_cidade_importacao varchar(100)
+  nome_estado_importacao varchar(30)
+  latitude varchar(30)
+  longitude varchar(30)
+  video_url varchar(100)
+  deleted_automatically int [not null]
+  id_bairro_sinonimo int
+  area_util_maxima float
+  area_total_maxima float
+  valor_imovel_maximo decimal(12,2)
+  qtd_quartos_maximo int
+  qtd_banheiros_maximo int
+  qtd_vagas_garagem_maximo int
+  qtd_suites_maximo int
+  qtd_salas_maximo int
+  construtora varchar(50)
+  comercializacao varchar(50)
+  congelado int [not null]
+  aceita_troca int
+  nome_edificio varchar(50)
+  divulgar_endereco int
+  latitude_mapa varchar(30)
+  longitude_mapa varchar(30)
+  ordem int
+  id_periodo_locacao int
+  markers text
+  data_atualizacao_markers varchar(8)
+  url_rua varchar(100)
+  endereco_original varchar(200)
+  id_imovel_integrador int
+  ordem_cidade int
+  id_logradouro int
+  falha_integracao int
+  suspeito int
+  facebook int [not null]
+  aceita_pet tinyint
+  qualidade_melhorias json
+}
+
+Table tb_imovel_agendar_visita {
+  id int [pk]
+  id_imovel int
+  nome varchar(200)
+  email varchar(200) [not null]
+  telefone varchar(20)
+  horario int
+  data_cadastro datetime [not null]
+}
+
+Table tb_imovel_alerta {
+  id int [pk]
+  email varchar(200) [not null]
+  nome varchar(100)
+  telefone varchar(20)
+  id_cidade int
+  id_bairros varchar(200)
+  id_imovel int
+  id_imovel_tipo int
+  finalidade1 char(1)
+  finalidade2 char(2)
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  data_ultimo_envio datetime
+}
+
+Table tb_imovel_alerta_imovel {
+  id_alerta int [not null]
+  id_imovel int [not null]
+}
+
+Table tb_imovel_alteracao {
+  id int [not null]
+  data_alteracao datetime
+}
+
+Table tb_imovel_area_grupo {
+  id int [pk]
+  nome varchar(100) [not null]
+  id_imovel_area_macro_grupo int
+  deleted int
+  url varchar(100)
+  nome_geral varchar(100)
+}
+
+Table tb_imovel_area_macro_grupo {
+  id int [pk]
+  nome varchar(100) [not null]
+  ordem int
+}
+
+Table tb_imovel_area_grupo_imovel_tipo {
+  id_imovel_area_grupo int
+  id_imovel_tipo int
+  url varchar(45)
+  nome varchar(45)
+}
+
+Table tb_imovel_area_grupo_imovel_tipo_relacionado {
+  id int [pk]
+  id_imovel_tipo int
+  id_imovel_area_grupo int
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criacao int
+  id_usuario_alterou int
+  deleted int
+}
+
+Table tb_imovel_area_grupo_item {
+  id int [pk]
+  id_imovel_area_grupo int
+  id_imovel_area_comum int
+  id_imovel_area_privativa int
+  data_criacao datetime
+  deleted int
+}
+
+Table tb_imovel_area_comum {
+  id int [pk]
+  nome varchar(50) [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  publico int [not null]
+}
+
+Table tb_imovel_area_privativa {
+  id int [pk]
+  nome varchar(50) [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  publico int [not null]
+}
+
+Table tb_imovel_area_comum_imovel {
+  id_imovel_area_comum int
+  id_imovel int
+}
+
+Table tb_imovel_area_comum_nao_encontrada {
+  id int [pk]
+  nome varchar(1000)
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  verificado int [not null]
+  id_cliente int
+}
+
+Table tb_imovel_area_grupo_resumo {
+  id_imovel int
+  id_imovel_area_grupo int
+}
+
+Table tb_imovel_area_comum_sinonima {
+  id int [pk]
+  id_imovel_area_comum int [not null]
+  nome varchar(100) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_area_comum_tipo_imovel {
+  id_imovel_area_comum int
+  id_imovel_tipo int
+}
+
+Table tb_imovel_area_privativa_imovel {
+  id_imovel_area_privativa int
+  id_imovel int
+}
+
+Table tb_imovel_area_privativa_nao_encontrada {
+  id int [pk]
+  nome varchar(2000)
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  verificado int [not null]
+  id_cliente int
+}
+
+Table tb_imovel_area_privativa_sinonima {
+  id int [pk]
+  id_imovel_area_privativa int [not null]
+  nome varchar(100) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_area_privativa_tipo_imovel {
+  id_imovel_area_privativa int
+  id_imovel_tipo int
+}
+
+Table tb_imovel_ativo_historico {
+  id_imovel int
+  data date
+}
+
+Table tb_imovel_busca {
+  id int [pk]
+  id_imovel int [not null]
+  id_cliente int [not null]
+  finalidade1 char(1) [not null]
+  finalidade2 char(2) [not null]
+  id_imovel_tipo int [not null]
+  area_total float
+  area_util float
+  qtd_quartos int
+  qtd_banheiros int
+  qtd_vagas_garagem int
+  qtd_salas int
+  qtd_suites int
+  valor_imovel decimal(12,2)
+  valor_condominio decimal(12,2)
+  id_cidade int
+  id_bairro int
+  descricao text
+  lancamento int [not null]
+  endereco varchar(200)
+  numero_endereco varchar(10)
+  complemento_endereco varchar(100)
+  anuncio_prioridade int [not null]
+  status_lancamento int [not null]
+  qualidade float
+  destaque int [not null]
+  aprovado int [not null]
+  bloqueado int [not null]
+  possui_foto int
+  qtd_fotos int
+  referencia varchar(60)
+  data_validade date
+  primeira_foto varchar(200)
+  video_url varchar(100)
+  id_bairro_sinonimo int
+  area_util_maxima float
+  area_total_maxima float
+  valor_imovel_maximo decimal(12,2)
+  qtd_quartos_maximo int
+  qtd_banheiros_maximo int
+  qtd_vagas_garagem_maximo int
+  qtd_suites_maximo int
+  qtd_salas_maximo int
+  congelado int [not null]
+  latitude varchar(200)
+  longitude varchar(200)
+  aceita_troca varchar(200)
+  divulgar_endereco varchar(200)
+  fotos text
+  cep_endereco char(9)
+  periodo_locacao char(20)
+  id_cliente_filial int
+  url_rua varchar(100)
+}
+
+Table tb_imovel_busca_order_rand {
+  imovel_ordem int [pk]
+  id_imovel int
+}
+
+Table tb_imovel_caracteristica {
+  id int [pk]
+  nome varchar(80) [not null]
+  tipo varchar(10) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_caracteristica_opcao {
+  id int [pk]
+  id_imovel_caracteristica int [not null]
+  opcao varchar(80) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_caracteristica_opcao_imovel {
+  id_imovel int [not null]
+  id_imovel_caracteristica_opcao int [not null]
+}
+
+Table tb_imovel_caracteristica_tipo_imovel {
+  id_imovel_caracteristica int
+  id_imovel_tipo int
+}
+
+Table tb_imovel_caracteristica_importante {
+  id int [pk]
+  nome varchar(80) [not null]
+  tipo varchar(10) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_caracteristica_importante_opcao {
+  id int [pk]
+  id_imovel_caracteristica_importante int [not null]
+  opcao varchar(80) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_caracteristica_importante_opcao_imovel {
+  id_imovel int [not null]
+  id_imovel_caracteristica_importante_opcao int [not null]
+}
+
+Table tb_imovel_caracteristica_importante_tipo_imovel {
+  id_imovel_caracteristica_importante int
+  id_imovel_tipo int
+}
+
+Table tb_imovel_condicao_locacao {
+  id int [pk]
+  nome varchar(50) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_condicao_locacao_imovel {
+  id_imovel int [not null]
+  id_imovel_condicao_locacao int [not null]
+}
+
+Table tb_imovel_consolidado {
+  id int [pk]
+  titulo varchar(200)
+  finalidade1 char(1) [not null]
+  finalidade2 char(2) [not null]
+  referencia varchar(60)
+  id_cliente int [not null]
+  id_imovel_tipo int [not null]
+  id_uf int [not null]
+  id_cidade int [not null]
+  id_cidade_regiao int
+  id_bairro int
+  id_logradouro int
+  area_total float
+  area_util float
+  area_total_maxima float
+  qtd_quartos int
+  qtd_salas int
+  qtd_banheiros int
+  qtd_vagas_garagem int
+  qtd_quartos_maximo int
+  qtd_salas_maximo int
+  qtd_vagas_garagem_maximo int
+  valor_imovel decimal(12,2)
+  valor_imovel_maximo decimal(12,2)
+  aprovado int
+  ativo int [not null]
+  bloqueado int [not null]
+  conservacao char(1) [not null]
+  descricao text
+  divulgar_endereco int
+  endereco varchar(200)
+  numero_endereco varchar(10)
+  complemento_endereco varchar(100)
+  cep_endereco char(9)
+  latitude varchar(30)
+  longitude varchar(30)
+  lancamento int [not null]
+  data_alteracao datetime [not null]
+  data_cadastro datetime [not null]
+  area_comum_imovel json
+  area_privativa_imovel json
+  nome_tipo varchar(50) [not null]
+  nome_titulo varchar(70)
+  nome_plural varchar(70)
+  comercial int [not null]
+  indice_nome varchar(100)
+  indice_url varchar(100)
+  filtro_quarto_sala int
+  nome_cliente varchar(200) [not null]
+  nome_fantasia varchar(200)
+  congelado int [not null]
+  tipo_pessoa char(2) [not null]
+  deleted int [not null]
+  nome_uf varchar(255)
+  sigla_uf varchar(2) [not null]
+  nome_cidade varchar(255)
+  ligacao_cidade char(2) [not null]
+  url_cidade varchar(200)
+  tipo_regiao int
+  nome_regiao varchar(50)
+  ligacao_regiao varchar(5)
+  url_regiao varchar(50)
+  nome_bairro varchar(255)
+  ligacao_bairro char(2)
+  url_bairro varchar(255)
+  logradouro varchar(280)
+  url_logradouro varchar(280)
+  primeira_foto varchar(200)
+  fotos text
+  data_validade date
+  destaque int [not null]
+  periodo_locacao char(25)
+  ic_data_alteracao datetime [not null]
+  ic_deleted int [not null]
+}
+
+Table tb_imovel_foto {
+  id int [pk]
+  id_imovel int [not null]
+  foto varchar(200) [not null]
+  ordem int [not null]
+  versao int
+  enviado int
+  data_envio datetime
+  hash char(32)
+  exists_on_disk tinyint
+  checked_at varchar(45)
+  send_aws int
+  url_original varchar(300)
+  data_cadastro datetime
+}
+
+Table tb_imovel_historico {
+  id bigint [pk]
+  id_imovel int [not null]
+  id_cliente int [not null]
+  id_user int
+  segmento varchar(50) [not null]
+  origem varchar(50) [not null]
+  acao varchar(50) [not null]
+  campos_alterados json
+}
+
+Table tb_imovel_ordem {
+  id_imovel int [pk]
+  ordem_pais int
+  ordem_estado int
+  ordem_cidade int
+  ordem_bairro int
+  ordem_rua int
+  ordem_pais_geral int
+  ordem_estado_geral int
+  ordem_cidade_geral int
+  ordem_bairro_geral int
+  ordem_rua_geral int
+  ordem_pais_quarto int
+  ordem_estado_quarto int
+  ordem_cidade_quarto int
+  ordem_bairro_quarto int
+  ordem_rua_quarto int
+  ordem_cidade_finalidade int
+  ordem_bairro_finalidade int
+  ordem_rua_finalidade int
+}
+
+Table tb_imovel_excluido {
+  id int [pk]
+  titulo varchar(100) [not null]
+  id_cliente int [not null]
+  finalidade1 char(1) [not null]
+  finalidade2 char(2) [not null]
+  id_imovel_tipo int [not null]
+  area_total float
+  area_util float
+  qtd_quartos int
+  qtd_banheiros int
+  qtd_vagas_garagem int
+  qtd_cozinha int
+  qtd_despensa int
+  qtd_bar int
+  qtd_quarto_empregada int
+  qtd_suites int
+  qtd_varanda int
+  qtd_closet int
+  qtd_area_servico int
+  qtd_lavanderia int
+  qtd_escritorio int
+  qtd_lareira int
+  valor_imovel decimal(12,2)
+  valor_promocional decimal(12,2) [not null]
+  valor_entrada decimal(12,2) [not null]
+  valor_parcelado decimal(12,2) [not null]
+  valor_inicial decimal(12,2) [not null]
+  valor_final decimal(12,2) [not null]
+  qtd_parcelas int [not null]
+  valor_condominio decimal(12,2)
+  valor_iptu decimal(12,2)
+  endereco varchar(200)
+  numero_endereco varchar(10)
+  complemento_endereco varchar(50)
+  cep_endereco char(9)
+  id_cidade int
+  id_bairro int
+  descricao text
+  data_cadastro datetime [not null]
+  ativo int [not null]
+  deleted int [not null]
+  qtd_salas int
+  lancamento int [not null]
+  anuncio_prioridade int
+  status_lancamento int [not null]
+  conservacao char(1) [not null]
+  qtd_acessos int [not null]
+  bloqueado int [not null]
+  codigo_imovel_cliente varchar(60)
+  referencia varchar(60)
+  idade_imovel int
+  aprovado int
+  revisao int
+  id_cliente_filial int
+  data_alteracao datetime
+  qualidade int
+  nome_bairro_importacao varchar(100)
+  nome_cidade_importacao varchar(100)
+  nome_estado_importacao varchar(30)
+  latitude varchar(30)
+  longitude varchar(30)
+}
+
+Table tb_imovel_dominios_tour {
+  id int [pk]
+  nome varchar(255)
+  url varchar(255) [not null]
+  ativo tinyint [not null]
+  deleted tinyint
+}
+
+Table tb_imovel_forma_pagamento {
+  id int [pk]
+  nome varchar(50) [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_forma_pagamento_imovel {
+  id_imovel int [not null]
+  id_imovel_forma_pagamento int [not null]
+}
+
+Table tb_imovel_integracao {
+  id_imovel int [pk]
+  facebook tinyint [not null]
+  origem_latlon varchar(50)
+  origem_latlon_data datetime
+}
+
+Table tb_imovel_mailing_bairro {
+  id_mailing int [not null]
+  id_bairro int [not null]
+}
+
+Table tb_imovel_mailing_cidade {
+  id_mailing int [not null]
+  id_cidade int [not null]
+}
+
+Table tb_imovel_mailing_historico {
+  id int [pk]
+  id_mailing int [not null]
+  data_envio datetime [not null]
+}
+
+Table tb_imovel_mailing_historico_imovel {
+  id_mailing int [not null]
+  id_imovel int [not null]
+  data_envio datetime [not null]
+}
+
+Table tb_imovel_mailing_imovel {
+  id_mailing int [not null]
+  id_imovel int [not null]
+}
+
+Table tb_imovel_mailing {
+  id int [pk]
+  categoria char(1) [not null]
+  finalidade char(1)
+  id_imovel_tipo int
+  tipo_envio int [not null]
+  titulo varchar(250) [not null]
+  data_cadastro date [not null]
+  deleted int [not null]
+  status int [not null]
+}
+
+Table tb_imovel_mailing_enviado {
+  email varchar(255) [not null]
+  id_imovel int [not null]
+}
+
+Table tb_imovel_mailing_lista_email {
+  id int [pk]
+  email varchar(255) [not null]
+  id_cidade int [not null]
+  id_bairro int [not null]
+  id_imovel_tipo int [not null]
+  finalidade1 char(1) [not null]
+  finalidade2 char(2) [not null]
+  lancamento int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_nao_importado {
+  id int [pk]
+  id_cliente int [not null]
+  referencia varchar(60)
+  id_imovel_tipo int
+  finalidade char(1)
+  motivo varchar(500)
+  id_imovel_duplicado int
+  data_inclusao datetime
+  data_alteracao datetime
+}
+
+Table tb_imovel_oportunidade {
+  id_imovel int [not null]
+  id_cliente int [not null]
+  excluido int
+  respondido int [not null]
+  data_resposta datetime
+  resposta text
+  assunto varchar(150)
+}
+
+Table tb_imovel_ordenacao {
+  id_imovel int [pk]
+  ord_imov_ger_bra int
+  ord_imov_fin_bra int
+  ord_tipo_ger_bra int
+  ord_tipo_fin_bra int
+  ord_imov_ger_est int
+  ord_imov_fin_est int
+  ord_tipo_ger_est int
+  ord_tipo_fin_est int
+  ord_imov_ger_cid int
+  ord_imov_fin_cid int
+  ord_tipo_ger_cid int
+  ord_tipo_fin_cid int
+  ord_imov_ger_bai int
+  ord_imov_fin_bai int
+  ord_tipo_ger_bai int
+  ord_tipo_fin_bai int
+  ord_imov_ger_rua int
+  ord_imov_fin_rua int
+  ord_tipo_ger_rua int
+  ord_tipo_fin_rua int
+  data_alteracao datetime
+}
+
+Table tb_imovel_periodo_locacao {
+  id int [pk]
+  descricao char(25) [not null]
+  deleted int [not null]
+  descricao_option char(25)
+}
+
+Table tb_imovel_plano_assinatura {
+  id int [pk]
+  nome varchar(255)
+  classe_cor varchar(15)
+  tipo_pessoa char(2) [not null]
+  qtd_imoveis int [not null]
+  qtd_videos int [not null]
+  qtd_fotos int [not null]
+  gratuito int [not null]
+  possui_destaque int [not null]
+  comprar_destaque int [not null]
+  valor_destaque decimal(9,2)
+  tempo_valor1 int [not null]
+  fator_tempo_valor1 char(1)
+  valor1 decimal(9,2)
+  qtd_parcelas_valor1 int
+  valor_parcelas_valor1 decimal(9,2)
+  tempo_valor2 int
+  fator_tempo_valor2 char(1)
+  valor2 decimal(9,2)
+  qtd_parcelas_valor2 int
+  valor_parcelas_valor2 decimal(9,2)
+  tempo_valor3 int
+  fator_tempo_valor3 char(1)
+  valor3 decimal(9,2)
+  qtd_parcelas_valor3 int
+  valor_parcelas_valor3 decimal(9,2)
+  ordem int [not null]
+  deleted int [not null]
+  recomendado int [not null]
+  termo_adesao text
+  qtd_destaque int [not null]
+  publico int [not null]
+  valor1_promocional decimal(9,2)
+  valor2_promocional decimal(9,2)
+  valor3_promocional decimal(9,2)
+  valor_parcelas_valor1_promocional decimal(9,2)
+  valor_parcelas_valor2_promocional decimal(9,2)
+  valor_parcelas_valor3_promocional decimal(9,2)
+  desconto_percentual int
+  desconto_percentual_avista int
+  possui_nome_customizado int
+  id_base_plan int
+  id_base_highlight int
+  total_value decimal(10,2)
+  qtd_parcelas int
+}
+
+Table tb_imovel_plano_assinatura_valor {
+  id int [pk]
+  id_plano int
+  id_regiao int
+  id_grupo int
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  id_usuario_alterou int
+  deleted int
+  plan_price decimal(10,0)
+  highlight_price decimal(10,0)
+  valor decimal(9,2)
+}
+
+Table tb_imovel_plano_assinatura_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_imovel_plano_assinatura int [not null]
+  id_imovel_plano_assinatura_valor int
+  id_contrato int
+  forma_pagamento varchar(10)
+  qtd_parcelas int
+  valor_parcela decimal(9,2)
+  valor_total decimal(9,2)
+  data_cadastro datetime [not null]
+  data_pagamento datetime
+  data_inicio_assinatura date
+  data_termino_assinatura date
+  autenticacao_gateway varchar(200)
+  retorno_gateway text
+  id_transacao_gateway varchar(200)
+  data_retorno_gateway datetime
+  ativo int [not null]
+  pago int [not null]
+  observacoes text
+  deleted int [not null]
+  variacao_imovel_plano_assinatura int [not null]
+  possui_destaque int [not null]
+  valor_destaque decimal(9,2)
+  valor_total_avista decimal(9,2)
+  valor_pago decimal(9,2)
+  historico_retorno_gateway text
+}
+
+Table tb_imovel_plano_assinatura_cliente_imovel {
+  id_imovel_plano_assinatura_cliente int [not null]
+  id_imovel int [not null]
+  destaque int [not null]
+}
+
+Table tb_imovel_plano_assinatura_grupo {
+  id int [pk]
+  nome varchar(500)
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  id_usuario_alterou int
+  deleted int
+  visivel_pre_cadastro int
+  tipo_pessoa varchar(50)
+  visivel_site int
+  departamentos_visiveis_pre_cadastro json
+}
+
+Table tb_imovel_plano_assinatura_regiao {
+  id int [pk]
+  nome_regiao varchar(100)
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  deleted int
+  id_uf int
+  id_usuario_alterou int
+  all int
+}
+
+Table tb_imovel_plano_assinatura_uf {
+  id_imovel_plano_assinatura int
+  id_uf int
+  deleted int [not null]
+}
+
+Table tb_imovel_plano_assinatura_regiao_cidade {
+  id int [pk]
+  id_regiao int
+  id_cidade int
+}
+
+Table tb_imovel_proposta {
+  id int [pk]
+  id_imovel int [not null]
+  nome varchar(200) [not null]
+  telefone varchar(20)
+  email varchar(200)
+  mensagem text
+  financiar int [not null]
+  visita int
+  visita_horario int
+  valor_entrada varchar(15)
+  parcelamento int
+  veiculo_troca int [not null]
+  receber_news int [not null]
+  data_proposta datetime [not null]
+  deleted int [not null]
+  visualizado int [not null]
+  respondido int [not null]
+  assunto_resposta varchar(200)
+  resposta text
+  data_resposta datetime
+  utm_source varchar(500)
+  utm_medium varchar(500)
+  utm_campaign varchar(500)
+  enviado_guia int [not null]
+  origem int
+  data_importacao datetime
+  id_proposta_tipo int
+  qualidade float
+  destaque int
+  cpfcnpj varchar(18)
+  data_agendamento date
+  tipo_visita varchar(45)
+  lancamento int
+  send_sqs tinyint
+  id_contrato int
+}
+
+Table tb_imovel_proposta_importacao {
+  id int [pk]
+  nome varchar(150) [not null]
+  email varchar(150)
+  telefone varchar(20)
+  data_proposta date [not null]
+  id_imovel int [not null]
+  data_cadastro datetime [not null]
+  id_usuario_enviou int [not null]
+  deleted int [not null]
+}
+
+Table tb_imovel_proposta_simulacao_financiamento {
+  id int [pk]
+  id_imovel_proposta int
+  dados_busca_simulador text
+  resultado_simulador text
+  dados_envio_lead text
+  id_credihome varchar(300)
+  data_cadastro datetime
+  data_alteracao datetime
+}
+
+Table tb_imovel_resumo {
+  total bigint [not null]
+  id_imovel_tipo int [not null]
+  indice_nome varchar(100)
+  indice_url varchar(100)
+  nome_plural varchar(70)
+  finalidade char(1) [not null]
+  id_cidade int
+  id_uf int [not null]
+  nome_cidade varchar(255)
+  ligacao_cidade char(2) [not null]
+  url varchar(200)
+  id_bairro int
+  nome_bairro varchar(255) [not null]
+  ligacao_bairro char(2) [not null]
+}
+
+Table tb_imovel_resumo_conveniencia {
+  qtd int
+  tipo_pessoa char(2) [not null]
+  nivel int [not null]
+  id_imovel_tipo int [not null]
+  finalidade1 char(1) [not null]
+  id_imovel_area_grupo int [not null]
+  nome varchar(100) [not null]
+  indice_url varchar(100)
+  url_grupo varchar(100)
+  id_cidade int
+  url_cidade varchar(200)
+  nome_cidade varchar(255)
+  ligacao_cidade varchar(5)
+  id_regiao int
+  url_regiao varchar(50)
+  nome_regiao varchar(50)
+  ligacao_regiao varchar(5)
+  id_bairro int
+  url_bairro varchar(255)
+  nome_bairro varchar(255)
+  ligacao_bairro varchar(5)
+}
+
+Table tb_imovel_resumo_novo {
+  total int
+  nivel int
+  id_imovel_tipo int
+  indice_nome varchar(100)
+  indice_url varchar(100)
+  nome_plural varchar(70)
+  finalidade char(1)
+  id_cidade int
+  id_uf int
+  nome_cidade varchar(255)
+  ligacao_cidade char(2)
+  url varchar(200)
+  id_cidade_regiao int
+  nome_regiao varchar(50)
+  ligacao_regiao char(5)
+  url_regiao char(50)
+  id_bairro int
+  nome_bairro varchar(255)
+  ligacao_bairro char(2)
+  url_bairro char(255)
+  id_logradouro int
+  nome_logradouro varchar(280)
+  url_logradouro varchar(280)
+  qtd_quarto_sala int
+  finalidade2 varchar(2)
+  somente_lancamento int
+  direto_com_proprietario tinyint [not null]
+}
+
+Table tb_imovel_seo_tag {
+  id int [pk]
+  finalidade1 char(2) [not null]
+  finalidade2 char(2)
+  id_imovel_tipo int
+  cidade int [not null]
+  bairro int [not null]
+  banheiros int [not null]
+  salas_quartos int [not null]
+  garagens int [not null]
+  titulo varchar(250)
+  titulo_html varchar(250)
+  subtitulo varchar(250)
+  descricao varchar(250)
+  deleted int [not null]
+}
+
+Table tb_imovel_seo_texto {
+  id int [pk]
+  finalidade1 char(2)
+  finalidade2 char(2)
+  id_imovel_tipo int
+  id_uf int
+  id_cidade int
+  id_bairro int
+  texto text
+  titulo varchar(200)
+  dados text
+  deleted int [not null]
+  bairro_sinonimo int [not null]
+}
+
+Table tb_imovel_seo_texto_faq {
+  id int [pk]
+  seo_text_id int [not null]
+  question varchar(255) [not null]
+  answer text [not null]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table tb_imovel_solicitacao_telefone {
+  id int [pk]
+  id_imovel int
+  nome varchar(200)
+  email varchar(200)
+  telefone varchar(15)
+  horario int
+  data_cadastro datetime
+}
+
+Table tb_imovel_video {
+  id int [pk]
+  id_imovel int [not null]
+  video varchar(200) [not null]
+  data_cadastro datetime [not null]
+  type varchar(50)
+}
+
+Table tb_imovel_tipo {
+  id int [pk]
+  nome varchar(50) [not null]
+  deleted int [not null]
+  residencial int [not null]
+  comercial int [not null]
+  venda int [not null]
+  locacao int [not null]
+  temporada int [not null]
+  outros int
+  caracteristicas_comuns int [not null]
+  id_parente int
+  texto_residencial_locacao text
+  texto_comercial_locacao text
+  texto_temporada_locacao text
+  texto_residencial_venda text
+  texto_comercial_venda text
+  texto_temporada_venda text
+  texto_outros_locacao text
+  texto_outros_venda text
+  nome_url varchar(100)
+  nome_plural varchar(70)
+  nome_titulo varchar(70)
+  rural int [not null]
+  indice_url varchar(100)
+  indice_nome varchar(100)
+  nome_url_imovel varchar(100)
+  ordem int
+  ordenacao int
+  filtro_quarto_sala int
+  default_image text
+}
+
+Table tb_imovel_texto_lancamentos {
+  id int [pk]
+  texto_todos text
+  texto_comercial text
+  texto_residencial text
+  data_alteracao datetime [not null]
+}
+
+Table tb_imovel_tipo_nao_encontrado {
+  id int [pk]
+  nome varchar(500) [not null]
+  id_software int
+  finalidade varchar(45) [not null]
+  visualizado int
+  data_criacao datetime
+  data_alteracao datetime
+  deleted int
+  id_user int
+}
+
+Table tb_imovel_tipo_nao_encontrado_imovel {
+  id int [pk]
+  id_imovel_tipo_nao_encontrado int [not null]
+  data_importacao datetime
+  data_alteracao datetime
+  id_cliente int
+  id_software int
+  referencia varchar(45)
+  id_imovel int
+}
+
+Table tb_importacao {
+  id int [pk]
+  nome_arquivo varchar(300) [not null]
+  id_cliente int [not null]
+  data_hora datetime [not null]
+  tipo char(1) [not null]
+  tipo_arquivo char(1) [not null]
+}
+
+Table tb_importacao_linhas {
+  id int [pk]
+  id_importacao int [not null]
+  numero_linha int [not null]
+  linha text [not null]
+  identificador varchar(90) [not null]
+  requisicao char(1) [not null]
+  mensagem text [not null]
+  status char(1) [not null]
+  data_hora datetime [not null]
+  id_anuncio int
+}
+
+Table tb_importacao_revendedora_log {
+  id int [pk]
+  fonte varchar(50) [not null]
+  id_cidade_revendedora int [not null]
+  data_hora_inicio timestamp
+  status varchar(50) [not null]
+  data_hora_termino timestamp
+  dados text
+}
+
+Table tb_integracao {
+  id int [pk]
+  id_cliente int [not null]
+  id_contrato int
+  id_software int
+  software varchar(90)
+  url varchar(600) [not null]
+  ordem int
+  ativo int [not null]
+  codigo_no_integrador int
+  login varchar(90)
+  senha varchar(90)
+  configuracao text
+  utf8_encode int [not null]
+  nao_exibir_endereco int [not null]
+  pausar int [not null]
+  destaque_manual int [not null]
+  aceita_troca_manual int [not null]
+  area_comum_manual int [not null]
+  area_privativa_manual int [not null]
+  video_manual int [not null]
+  ativar_automaticamente int [not null]
+  ativa_desativa_manual int [not null]
+  nao_exibir_numero int [not null]
+  aceitar_filial int
+  parametros json
+  data_ultima_execucao datetime
+  id_parceiro int
+  id_padrao int
+  deleted int
+  ignora_compara_xml int
+  horario_executar datetime
+  arquivos_filho text
+  quebra_arquivo int
+  nao_ler_cep tinyint
+  nao_ler_token_lead tinyint
+  somente_venda tinyint
+  somente_locacao tinyint
+  permitir_xml_duplicado tinyint
+  tour360_manual tinyint
+  higienizar_descricao tinyint
+  lancamento tinyint
+  email_estatisticas tinyint
+  integracao_syncfy varchar(600)
+  email_integration json
+  remover_emojis tinyint [not null]
+}
+
+Table tb_integracao_log {
+  id int [pk]
+  id_integracao int [not null]
+  id_cliente int [not null]
+  url varchar(250) [not null]
+  id_software int
+  software varchar(30)
+  email_destino varchar(200)
+  qtd_imoveis_adicionados int
+  qtd_imoveis_excluidos int
+  qtd_imoveis_existentes int
+  data_hora_inicio datetime [not null]
+  data_hora_termino datetime
+  dados text
+  id_usuario_solicitou int
+  status char(1)
+  deleted int [not null]
+  array_referencia_duplicada text
+  resumo text
+}
+
+Table tb_integracao_log_dados {
+  id int [pk]
+  id_integracao_log int [not null]
+  id_imovel int
+  dados text [not null]
+  deleted int [not null]
+}
+
+Table tb_integracao_padrao {
+  id int [pk]
+  nome_padrao varchar(45) [not null]
+  tipo_anuncio varchar(15) [not null]
+  deleted int
+}
+
+Table tb_importacao_upload {
+  id int [pk]
+  id_cliente int [not null]
+  data_upload datetime [not null]
+  data_importacao datetime
+  integrador varchar(60)
+  tipo_arquivo char(50) [not null]
+  arquivo varchar(260) [not null]
+  status char(50) [not null]
+}
+
+Table tb_integracao_fila {
+  id int [pk]
+  id_cliente int
+  email varchar(500)
+  nao_compara_xml int
+  forcar_download int
+  data_cadastro datetime
+  status int
+  nao_executar_antes datetime
+  tentativas int
+  data_inicio datetime
+  ultima_verificacao datetime
+  observacao varchar(200)
+  prioridade int
+  id_usuario_criacao int
+  manual tinyint
+  lancamento tinyint
+  referencias_integracao varchar(500)
+  enviar_email tinyint
+  id_queue_log int
+}
+
+Table tb_integracao_fila_manual {
+  id int [pk]
+  id_cliente int
+  email varchar(500)
+  nao_compara_xml int
+  executou int
+  data_cadastro datetime
+  data_atualizacao datetime
+  tipo_integracao varchar(1)
+  id_usuario_criou int
+}
+
+Table tb_integracao_leads {
+  id int [pk]
+  id_cliente int
+  id_parceiro int
+  token varchar(500)
+  deleted int
+  data_cadastro datetime
+  data_alteracao datetime
+  permitir_token_duplicado tinyint
+  id_sistema_cliente int
+}
+
+Table tb_integracao_leads_fila {
+  id int [pk]
+  status int [not null]
+  tipo int
+  id_cliente int
+  id_integrador_leads int
+  token_leads varchar(500)
+  id_imovel int
+  id_proposta int
+  nome varchar(200) [not null]
+  email varchar(200)
+  telefone varchar(20)
+  mensagem text
+  retorno text
+  data_cadastro datetime
+  data_envio datetime
+  data_status datetime
+  destaque int
+  tipoLead int
+  arrayDados text
+}
+
+Table tb_integracao_leads_parametros {
+  id int [pk]
+  chave varchar(500)
+  valor varchar(500)
+  id_integracao_leads int [not null]
+}
+
+Table tb_integracao_parceiro_padrao {
+  id int [pk]
+  id_parceiro int
+  id_padrao int
+  parametros json
+  deleted int
+}
+
+Table tb_ligacao {
+  id int [pk]
+  id_cliente int [not null]
+  call_id varchar(40)
+  numero_origem varchar(20)
+  numero_destino varchar(20)
+  data_hora_inicio datetime
+  duracao int
+  status int
+  motivo varchar(45)
+  qualidade float
+  url_audio varchar(120)
+  primeira int
+  verificado int
+  oportunidade int
+  metadados json
+  deleted int
+  data_evento datetime
+}
+
+Table tb_ligacao_observacao {
+  id int [pk]
+  id_ligacao int
+  observacao varchar(1000)
+  situacao int
+  data_cadastro timestamp
+  atendente varchar(250)
+  deleted int
+}
+
+Table tb_ligacao_imovel {
+  id bigint [pk]
+  id_imovel int [not null]
+  id_ligacao int
+  data_visualizacao datetime
+  id_cliente int [not null]
+  ip varchar(50)
+  lancamento int
+}
+
+Table tb_lead_corretor {
+  id int [pk]
+  id_cliente int
+  id_imovel int
+  data_envio datetime
+}
+
+Table tb_lead_corretor_cliente {
+  id int [pk]
+  id_cliente int
+  quantidade int
+  data_ultimo datetime
+}
+
+Table tb_ligacao_configuracao {
+  id int [pk]
+  id_cliente int [not null]
+  id_cliente_externo int [not null]
+  plataforma int
+  numero_origem varchar(15)
+  numero_destino varchar(15)
+  data_cadastro datetime
+  data_ativacao datetime
+  data_cancelamento datetime
+  data_remocao datetime
+  deleted int
+  id_usuario int
+  ativo int
+  cancelado int
+}
+
+Table tb_ligacao_veiculo {
+  id bigint [pk]
+  id_veiculo int [not null]
+  id_ligacao int
+  data_visualizacao datetime
+  id_cliente int [not null]
+  ip varchar(50)
+}
+
+Table tb_link {
+  id int [pk]
+  url varchar(300) [not null]
+  quantidade int
+  nivel int
+  id_imovel_tipo varchar(45)
+  id_uf int
+  id_cidade int
+  id_bairro int [not null]
+  qtd_quartos_salas int
+  url_rua varchar(200)
+  url_bairro varchar(100)
+  finalidade1 varchar(2)
+  finalidade2 varchar(2)
+  links json
+  data_alteracao datetime
+  titulo varchar(100)
+}
+
+Table tb_log_webservice {
+  id int [pk]
+  id_cliente int [not null]
+  token varchar(100) [not null]
+  mensagem text [not null]
+  requisicao char(1) [not null]
+  revisao char(1) [not null]
+  data_hora datetime [not null]
+  retorno varchar(50) [not null]
+  referencia varchar(25) [not null]
+}
+
+Table tb_logradouro {
+  id int [pk]
+  id_bairro int
+  id_tipo_logradouro int
+  nome_logradouro varchar(500)
+  cep_logradouro varchar(45) [not null]
+  deleted int [not null]
+  endereco varchar(500)
+  data_alteracao timestamp
+}
+
+Table tb_logradouro_imovel {
+  id int [pk]
+  nome_bairro varchar(255)
+  id_bairro int
+  nome_cidade varchar(255)
+  id_logradouro int [not null]
+  logradouro varchar(280) [not null]
+  id_cidade int [not null]
+  url_logradouro varchar(280)
+  qtd bigint [not null]
+  id_uf int [not null]
+  sigla_uf varchar(2) [not null]
+  nome_uf varchar(255)
+  url_uf varchar(2)
+  url_nome_uf varchar(20)
+  ligacao_uf varchar(2)
+}
+
+Table tb_logradouro_nao_encontrado {
+  id int [pk]
+  nome varchar(200)
+  verificado int
+  deleted int
+  cadastro datetime
+  atualizado datetime
+  usuario_modificou int
+  dados varchar(100)
+  id_cidade int
+  id_bairro int
+  cep varchar(45)
+  opcional text
+  sugestao text
+  nivel_alerta int
+}
+
+Table tb_logradouro_sinonimo {
+  id int [pk]
+  sinonimo varchar(500)
+  nome_logradouro varchar(500)
+  url_rua varchar(100)
+  nome_original varchar(500)
+  id_cidade int
+  id_bairro int
+  id_logradouro int
+  relacionado int
+}
+
+Table tb_logradouro_unico {
+  id int [pk]
+  id_cidade int [not null]
+  logradouro varchar(280) [not null]
+  url_logradouro varchar(280)
+  tipo varchar(80)
+  nome varchar(200)
+  deleted int
+  data_cadastro datetime
+  data_alteracao datetime
+  tratado int
+}
+
+Table tb_logradouro_unico_cep {
+  id int [pk]
+  id_logradouro int [not null]
+  id_bairro int [not null]
+  id_cidade int [not null]
+  cep varchar(10) [not null]
+}
+
+Table tb_mailing_html {
+  id int [pk]
+  titulo varchar(200) [not null]
+  data_criacao datetime [not null]
+  conteudo_html text [not null]
+  id_usuario_adicionou int [not null]
+  deleted int [not null]
+}
+
+Table tb_mailing_html_grupo {
+  id int [pk]
+  id_mailing_html int [not null]
+  id_mailing_grupo int [not null]
+}
+
+Table tb_mailing_html_arquivos {
+  id int [pk]
+  id_mailing_html int [not null]
+  arquivo varchar(200) [not null]
+}
+
+Table tb_mailing_html_envio {
+  id int [pk]
+  id_mailing_html int [not null]
+  id_mailing_contact int [not null]
+}
+
+Table tb_mailing_contact {
+  id int [pk]
+  email varchar(200) [not null]
+  nome varchar(200)
+  id_cidade int
+  id_externo int
+  deleted int [not null]
+  token varchar(32) [not null]
+  send_quantity int [not null]
+}
+
+Table tb_mailing_contact_group {
+  id int [pk]
+  id_mailing_contact int [not null]
+  id_mailing_group int [not null]
+  deleted int [not null]
+}
+
+Table tb_mailing_group {
+  id int [pk]
+  nome varchar(100) [not null]
+  deleted int [not null]
+  pode_excluir int [not null]
+  apelido varchar(10)
+}
+
+Table tb_mailing_imovel {
+  id int [pk]
+  titulo varchar(200) [not null]
+  tipo char(1)
+  data_criacao datetime [not null]
+  id_cidade int
+  id_usuario_adicionou int [not null]
+  deleted int [not null]
+  id_noticia int
+  assunto varchar(200)
+}
+
+Table tb_mailing_imovel_grupo {
+  id int [pk]
+  id_mailing_imovel int [not null]
+  id_mailing_grupo int [not null]
+}
+
+Table tb_mailing_imovel_anuncio {
+  id int [pk]
+  id_mailing_imovel int [not null]
+  id_imovel int [not null]
+  ordem int [not null]
+}
+
+Table tb_mailing_imovel_envio {
+  id int [pk]
+  id_mailing_imovel int [not null]
+  id_mailing_contact int [not null]
+}
+
+Table tb_mailing_noticia {
+  id int [pk]
+  titulo varchar(200)
+  id_noticia1 int
+  id_noticia2 int
+  id_noticia3 int
+  id_noticia4 int
+  id_usuario_adicionou int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_mailing_noticia_envio {
+  id int [pk]
+  id_mailing_noticia int [not null]
+  id_mailing_contact int [not null]
+}
+
+Table tb_mailing_noticia_grupo {
+  id int [pk]
+  id_mailing_noticia int [not null]
+  id_mailing_grupo int [not null]
+}
+
+Table tb_mailing_veiculo {
+  id int [pk]
+  titulo varchar(200) [not null]
+  tipo char(1)
+  data_criacao datetime [not null]
+  id_cidade int
+  id_usuario_adicionou int [not null]
+  deleted int [not null]
+  id_noticia int
+  assunto varchar(200)
+}
+
+Table tb_mailing_veiculo_anuncio {
+  id int [pk]
+  id_mailing_veiculo int [not null]
+  id_veiculo int [not null]
+  ordem int [not null]
+}
+
+Table tb_mailing_veiculo_envio {
+  id int [pk]
+  id_mailing_veiculo int [not null]
+  id_mailing_contact int [not null]
+}
+
+Table tb_mailing_veiculo_grupo {
+  id int [pk]
+  id_mailing_veiculo int [not null]
+  id_mailing_grupo int [not null]
+}
+
+Table tb_mailing_veiculo_propostas_modelo {
+  id int [pk]
+  id_mailing_veiculo int [not null]
+  id_veiculo_marca_modelo int [not null]
+}
+
+Table tb_nfs {
+  id int [pk]
+  id_servico bigint
+  status varchar(50) [not null]
+  retorno text
+  email_enviado tinyint [not null]
+  data_emissao datetime
+  emissor varchar(50) [not null]
+  numero_os int
+  cod_nfs varchar(200)
+  numero_nfs int
+  valor decimal(12,2) [not null]
+  cpfcnpj varchar(18)
+  id_cliente int
+  data_cancelamento datetime
+  id_empresa int
+  _update_script int
+}
+
+Table tb_novo_lead {
+  id int [pk]
+  id_integrator int [not null]
+  telephone varchar(16)
+  email varchar(40)
+  reference varchar(60)
+  url varchar(200)
+  featured tinyint
+  state varchar(40)
+  city varchar(40)
+  street varchar(40)
+  number int
+  date datetime
+  message varchar(200)
+  client_name varchar(60)
+  client_email varchar(60)
+  isNew tinyint
+}
+
+Table tb_operacional_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_operacional_usuario int [not null]
+  endereco_personalizado int [not null]
+  endereco varchar(150)
+  endereco_numero varchar(20)
+  endereco_complemento varchar(50)
+  endereco_bairro varchar(100)
+  id_cidade int
+  latitude varchar(25)
+  longitude varchar(25)
+  foto int [not null]
+  video int [not null]
+  pen_drive int [not null]
+  data_alteracao datetime
+  deleted int [not null]
+}
+
+Table tb_operacional_usuario {
+  id int [pk]
+  nome varchar(50) [not null]
+  login varchar(50) [not null]
+  email varchar(150)
+  senha varchar(100) [not null]
+  ultimo_acesso datetime
+  endereco_base varchar(150)
+  latitude varchar(25)
+  longitude varchar(25)
+  telefone varchar(20)
+  master int [not null]
+  deleted int [not null]
+}
+
+Table tb_operacional_cliente_log {
+  id int [pk]
+  id_operacional_cliente int [not null]
+  id_operacional_usuario int [not null]
+  data_hora_entrada datetime [not null]
+  data_hora_saida datetime
+  rota_especial int [not null]
+}
+
+Table tb_operacional_fotos_log {
+  id int [pk]
+  id_operacional_cliente int [not null]
+  id_operacional_usuario int [not null]
+  id_veiculo int [not null]
+  data date [not null]
+  qtd_fotos int [not null]
+}
+
+Table tb_operacional_usuario_rota_diaria {
+  id int [pk]
+  id_operacional_cliente int [not null]
+  dia_semana int [not null]
+  data_ultima_visita date
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_operacional_usuario_rota_especial {
+  id int [pk]
+  id_operacional_cliente int [not null]
+  id_operacional_usuario int [not null]
+  observacoes text
+  data_agendamento_rota date [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_operacional_videos_log {
+  id int [pk]
+  id_operacional_cliente int [not null]
+  id_operacional_usuario int [not null]
+  id_veiculo int [not null]
+  data date [not null]
+  qtd_videos int [not null]
+}
+
+Table tb_pagamento {
+  id int [pk]
+  id_cliente int [not null]
+  order_id char(36)
+  valor decimal(12,2) [not null]
+  data_pagamento datetime
+  tipo char(1)
+  tipo_plano char(1)
+  forma_pagamento varchar(10) [not null]
+  id_boleto int
+  numero_tid_cartao varchar(25)
+  id_plano_cliente int
+  id_mensalidade_cliente int
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  retorno_gateway text
+  id_usuario_adicionou int
+  url_comprovante varchar(600)
+  manual int
+  motivo text
+  id_cartao int
+  obrigatoriedade_nfs tinyint [not null]
+  id_nfs int
+  grupo_pagamento int
+  id_empresa int
+  id_pix varchar(32)
+  estorno tinyint
+}
+
+Table tb_palavra {
+  id int [pk]
+  palavra varchar(30) [not null]
+  deleted int [not null]
+}
+
+Table tb_palavra_relacionamento {
+  id int [pk]
+  id_palavra int [not null]
+  id_referencia int [not null]
+  tipo_referencia char(2) [not null]
+  tipo_site char(1) [not null]
+  deleted int [not null]
+}
+
+Table tb_parceiro {
+  id int [pk]
+  nome varchar(100) [not null]
+  imagem varchar(100)
+  ordem int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  observacao text
+  tipo_integracao varchar(100)
+  exibir int
+  email_parceiro varchar(200)
+  texto_email text
+  envia_email_parceiro tinyint [not null]
+  envia_email_cliente tinyint [not null]
+  integracao_lead tinyint
+  tipo_parceiro varchar(50) [not null]
+}
+
+Table tb_pre_cadastro_link {
+  id int [pk]
+  link varchar(800)
+  usuario_gerou int
+  data_cadastro datetime
+  ip_ultimo_acesso varchar(100)
+  data_alteracao datetime
+  area_alteracao varchar(45)
+  expirado int
+  id_vendedor int
+  tipo_cliente varchar(45)
+  expansao int
+  id_plano_valor int
+  tipo_contrato varchar(45)
+  id_mes_recisao int
+  desconto_adimplencia int
+  dias_bonificado int
+  dia_mensalidade int
+  mes_mensalidade int
+  ano_mensalidade int
+  ip_usuario_gerou varchar(100)
+  phonetrack int
+  id_financeiro_contrato_pre_cadastro int
+}
+
+Table tb_pre_cadastro_alerta {
+  id int [pk]
+  id_pre_cadastro int
+  msg text
+  tipo int
+  id_usuario_criacao int
+  data_cadastro datetime
+  data_atualizacao datetime
+  verificado int
+  deleted int
+  aprovadoReprovado int
+  id_pai int
+  id_usuario_alterou int
+}
+
+Table tb_pre_cadastro_fila {
+  id int [pk]
+  id_uf int [not null]
+  id_cidade varchar(45) [not null]
+  id_vendedor int
+  email varchar(45) [not null]
+  telefone varchar(45) [not null]
+  formComplete int
+  data_cadastro datetime
+  content text
+  deleted int
+  status int
+  data_alteracao datetime
+  tipo_empresa varchar(45)
+}
+
+Table tb_processo_cron {
+  id int [pk]
+  command varchar(255)
+  task varchar(255)
+  service_name varchar(100)
+  nome_classe varchar(100)
+  nome_metodo varchar(100)
+  nome_modulo varchar(100)
+  nome_shell varchar(100)
+  descricao text
+  data_criacao datetime
+  data_atualizacao datetime
+  usuario_criou int
+  usuario_atualizou int
+  deleted int
+  hostname varchar(40)
+  ativo tinyint
+}
+
+Table tb_processo_cron_log {
+  id int [pk]
+  id_processo_cron int
+  data_hora_fila datetime [not null]
+  data_hora_inicio datetime
+  data_hora_fim datetime
+  id_cliente int
+  status varchar(50)
+  resumo text
+  pid int
+  pid_pai int
+  id_queue_log int
+  data_hora_sinal datetime
+}
+
+Table tb_proposta_tipo {
+  id int [pk]
+  nome varchar(45)
+}
+
+Table tb_regiao_imovel {
+  id int [pk]
+  id_regiao int [not null]
+  nome_regiao varchar(50) [not null]
+  id_cidade int [not null]
+  url_regiao varchar(50)
+  tipo int
+  nome_cidade varchar(255)
+  sigla_uf varchar(2) [not null]
+  id_uf int [not null]
+  url_cidade varchar(200)
+  qtd bigint [not null]
+}
+
+Table tb_regra_pre_cadastro {
+  id int [pk]
+  nome_regra varchar(45)
+  deleted int
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criou int
+  id_usuario_alterou int
+  ativo int
+  descricao varchar(45)
+}
+
+Table tb_representante_comissao_expansao {
+  id int [pk]
+  id_representante int
+  pago int
+  status int
+  deleted int
+  data_cadastro datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  id_usuario_alterou int
+  data_pagamento date
+  total decimal(9,2)
+  comprovante_pagamento varchar(200)
+  ip_address varchar(100)
+  recibo varchar(100)
+}
+
+Table tb_representante_comissao_expansao_cliente {
+  id int [pk]
+  id_cliente int
+  deleted int
+  id_representante_comissao_expansao int
+  valor decimal(9,2)
+  qtd_veiculo int
+}
+
+Table tb_revendedora {
+  id int [pk]
+  id_externo int [not null]
+  nome varchar(255) [not null]
+  id_cidade_revendedora int
+  fonte varchar(50)
+  descricao text
+  horario_funcionamento varchar(255)
+  contato varchar(100)
+  id_logradouro int
+  numero_endereco varchar(45)
+  complemento_endereco varchar(255)
+  url varchar(255)
+  quantidade_veiculos int
+  data_cadastro timestamp
+  data_alteracao timestamp
+  id_moskit int
+  uf varchar(45)
+  cidade varchar(45)
+}
+
+Table tb_revendedora_telefone {
+  id_revendedora int
+  id_telefone int
+}
+
+Table tb_revendedores_icarros {
+  id int [pk]
+  url_estoque int
+  cidade varchar(45)
+  estado varchar(45)
+  tipo_pessoa varchar(45)
+  data_cadastro timestamp
+  data_alteracao timestamp
+}
+
+Table tb_revendedores_webmotors {
+  id int [pk]
+  id_externo int
+  cidade varchar(45)
+  estado varchar(45)
+  tipo_pessoa varchar(45)
+  data_cadastro timestamp
+  data_alteracao timestamp
+}
+
+Table tb_sinonimos_bairro {
+  id int [pk]
+  sinonimo varchar(50) [not null]
+  id_bairro int [not null]
+}
+
+Table tb_robo_google_logradouro_model {
+  id int [pk]
+  id_nao_encontrado int
+  id_cidade int
+  id_bairro int
+  logradouro varchar(200)
+  cidade varchar(200)
+  bairro varchar(200)
+  logradouro_encontrado varchar(200)
+  status int
+  data_cadastro datetime
+  data_alteracao datetime
+  log text
+  url_busca varchar(200)
+  logradouro_tratado varchar(200)
+}
+
+Table tb_sinonimos_cidade {
+  id int [pk]
+  sinonimo varchar(50) [not null]
+  id_cidade int [not null]
+}
+
+Table tb_sinonimos_modelo_veiculo {
+  id int [pk]
+  sinonimo varchar(50) [not null]
+  id_modelo int [not null]
+}
+
+Table tb_sinonimos_versao_veiculo {
+  id int [pk]
+  sinonimo varchar(50) [not null]
+  id_versao int [not null]
+}
+
+Table tb_sinonimos_cor {
+  id int [pk]
+  sinonimo varchar(50) [not null]
+  id_cor int [not null]
+}
+
+Table tb_sinonimos_opcional_veiculo {
+  id int [pk]
+  id_opcional_veiculo int [not null]
+  sinonimo varchar(100) [not null]
+  software varchar(25) [not null]
+}
+
+Table tb_sinonimos_tipo_imovel {
+  id int [pk]
+  sinonimo varchar(500) [not null]
+  id_tipo_imovel int [not null]
+  id_usuario_add int [not null]
+  data_criacao datetime
+}
+
+Table tb_sitemap_arquivo {
+  id bigint [pk]
+  id_classe_arquivo bigint [not null]
+  indice bigint [not null]
+  t_param varchar(40)
+}
+
+Table tb_sitemap_url {
+  id bigint [pk]
+  url varchar(255) [not null]
+  id_sitemap_arquivo bigint [not null]
+  last_mod datetime [not null]
+  incluido tinyint [not null]
+  ultima_inclusao datetime [not null]
+}
+
+Table tb_sys_log {
+  id int [pk]
+  table_name varchar(100) [not null]
+  log_operation varchar(10) [not null]
+  log_operation_description varchar(80) [not null]
+  id_user int [not null]
+  id_reference int [not null]
+  field_reference varchar(50) [not null]
+  content_before text
+  content_after text
+  ip varchar(50) [not null]
+  log_datetime datetime [not null]
+  area varchar(20)
+}
+
+Table tb_sys_permission {
+  id int [pk]
+  id_profile int [not null]
+  module varchar(25) [not null]
+  class varchar(40) [not null]
+  method varchar(40) [not null]
+  access varchar(1) [not null]
+}
+
+Table tb_sys_user {
+  id int [pk]
+  name varchar(50) [not null]
+  email varchar(150)
+  login varchar(30) [not null]
+  password varchar(150) [not null]
+  in_master int [not null]
+  id_profile int [not null]
+  last_access datetime
+  deleted int [not null]
+  oc char(1) [not null]
+  request_new_password int
+  pass varchar(150)
+  id_monday int
+}
+
+Table tb_sys_profile {
+  id int [pk]
+  name varchar(50) [not null]
+  deleted int [not null]
+}
+
+Table tb_tabela_fipe {
+  id int [pk]
+  tipo_veiculo char(1)
+  codigo_fipe varchar(10)
+  marca_fipe varchar(50)
+  modelo_fipe varchar(100)
+  qtd_passageiros int
+  id_marca int
+  id_combustivel int
+  id_cambio int
+  deleted int [not null]
+  data_atualizacao date
+  url varchar(100)
+  url_nova varchar(100)
+  altera_nome int
+}
+
+Table tb_tabela_fipe_valor_mes {
+  id int [pk]
+  id_tabela_fipe int [not null]
+  ano_mes_valor int [not null]
+  ano int [not null]
+  valor int [not null]
+  deleted int [not null]
+  data_cadastro datetime
+}
+
+Table tb_tabela_fipe_modelo {
+  id int [pk]
+  id_tabela_fipe int [not null]
+  id_marca int
+  id_modelo int
+  id_versao int
+  id_cambio int
+  id_combustivel int
+  deleted int [not null]
+}
+
+Table tb_tabela_fipe_troca_url_ignorada {
+  id int [pk]
+  codigo_fipe varchar(45)
+  url varchar(200)
+  url_nova varchar(200)
+  data_cadastro datetime
+  id_usuario_cadastrou int
+  deleted int
+}
+
+Table tb_tabela_fipe_valor {
+  id int [pk]
+  id_tabela_fipe int [not null]
+  ano int [not null]
+  valor int [not null]
+  deleted int [not null]
+}
+
+Table tb_telefone {
+  id int [pk]
+  numero varchar(200) [not null]
+  tipo varchar(50) [not null]
+  data_cadastro timestamp
+  data_alteracao timestamp
+}
+
+Table tb_template_email_cliente {
+  id int [pk]
+  nome varchar(45)
+  msg_email text
+  msg_assinatura text
+  id_usuario_cadastro int
+  data_cadastro datetime
+  data_alteracao datetime
+  id_usuario_alterou int
+  deleted int
+}
+
+Table tb_texto_imoveis {
+  id int [pk]
+  id_cidade int [not null]
+  id_tipo_imovel int [not null]
+  id_bairro int
+  titulo varchar(90)
+  texto text
+  data_hora datetime
+  ativo int
+  deletado int
+}
+
+Table tb_texto_veiculos {
+  id int [pk]
+  id_cidade int
+  id_marca bigint
+  id_modelo bigint
+  titulo varchar(90)
+  texto text
+  data_hora datetime
+  ativo int
+  deletado int
+}
+
+Table tb_uf {
+  id int [pk]
+  sigla_uf varchar(2) [not null]
+  nome_uf varchar(255)
+  deleted int [not null]
+  url varchar(2)
+  url_full varchar(20)
+  ligacao varchar(2)
+  location_path varchar(255)
+  population int
+}
+
+Table tb_uf_bonificada {
+  id int [pk]
+  id_uf int
+  deleted int
+}
+
+Table tb_uf_imovel {
+  qtd bigint [not null]
+  id int [pk]
+  sigla_uf varchar(2) [not null]
+  nome_uf varchar(255)
+  deleted int [not null]
+  url varchar(2)
+  url_full varchar(20)
+  ligacao varchar(2)
+  location_path varchar(255)
+  population int
+}
+
+Table tb_urls_busca_itens {
+  id int [pk]
+  id_url_busca int [not null]
+  id_imovel_tipo int
+  url_destino varchar(1024) [not null]
+  titulo varchar(100) [not null]
+  subtitulo varchar(100)
+  url_imagem text
+  ordem int
+}
+
+Table tb_valida_cep_unico {
+  qtd_ceps bigint [not null]
+  cep_logradouro varchar(10) [not null]
+  id_cidade int [not null]
+}
+
+Table tb_veiculo {
+  id int [pk]
+  titulo varchar(100)
+  id_cliente int [not null]
+  tipo_veiculo varchar(1) [not null]
+  placa varchar(8)
+  numero_documento varchar(20)
+  comprimento float
+  quilometragem int
+  qtd_portas int
+  ano_fabricacao int
+  ano_modelo int
+  id_marca bigint
+  id_modelo bigint
+  id_versao bigint
+  id_cor bigint
+  id_combustivel bigint
+  id_cambio bigint
+  aceita_troca int
+  descricao text
+  valor decimal(12,2)
+  data_cadastro datetime
+  lancamento int
+  qtd_acessos int [not null]
+  bloqueado int [not null]
+  ativo int [not null]
+  deleted int [not null]
+  aprovado int
+  revisao int
+  zero_km int
+  referencia varchar(90)
+  video_url varchar(90)
+  qualidade float
+  data_alteracao datetime
+  external_link varchar(250)
+  deleted_automatically int [not null]
+  adicionado_operacional int [not null]
+  congelado int [not null]
+  qtd_parcelas int
+  valor_parcelas decimal(9,2)
+  com_entrada int
+  valor_entrada decimal(9,2)
+  falha_integracao int
+  chassi varchar(20)
+  qualidade_melhorias json
+}
+
+Table tb_veiculo_alerta {
+  id int [pk]
+  email varchar(50)
+  id_cidade int
+  id_modelo int
+  deleted int
+  nome varchar(100)
+  telefone varchar(45)
+  id_veiculo int
+  data_cadastro datetime
+  id_marca int
+  data_ultimo_envio datetime
+}
+
+Table tb_veiculo_alerta_veiculo {
+  id_alerta int [not null]
+  id_veiculo int [not null]
+}
+
+Table tb_veiculo_busca {
+  id int [pk]
+  id_veiculo int [not null]
+  id_cliente int [not null]
+  tipo_veiculo char(1) [not null]
+  id_marca int [not null]
+  id_modelo int [not null]
+  id_versao int [not null]
+  id_cor int
+  id_combustivel int
+  id_cambio int
+  id_cidade int
+  quilometragem int
+  ano_fabricacao int
+  ano_modelo int
+  valor decimal(12,2)
+  descricao text
+  qualidade float
+  destaque int [not null]
+  aprovado int [not null]
+  bloqueado int [not null]
+  zero_km int [not null]
+  video_url varchar(150)
+  possui_foto int
+  qtd_fotos int
+  data_validade date
+  primeira_foto varchar(200)
+  congelado int [not null]
+  aceita_troca int
+  com_entrada int
+  qtd_parcelas int
+  valor_parcelas decimal(9,2)
+  valor_entrada decimal(9,2)
+  fotos text
+}
+
+Table tb_veiculo_marca_modelo {
+  id int [pk]
+  id_marca bigint [not null]
+  nome varchar(250) [not null]
+  deleted int [not null]
+  texto text
+  imagem varchar(100)
+  destaque int [not null]
+  id_veiculo_categoria int
+  imagem_fundo varchar(100)
+  imagem_fipe varchar(100)
+  url varchar(200)
+  importado int
+  esportivo int
+}
+
+Table tb_veiculo_marca {
+  id int [pk]
+  nome varchar(250) [not null]
+  tipo_veiculo char(1) [not null]
+  destaque int [not null]
+  deleted int [not null]
+  texto_seo text
+  url varchar(200)
+  url_imagem varchar(45)
+}
+
+Table tb_veiculo_marca_modelo_nao_encontrado {
+  id int [pk]
+  id_marca int [not null]
+  id_cliente int
+  nome varchar(250)
+  verificado int [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_carroceria_modelo {
+  id int [pk]
+  id_carroceria int
+  id_modelo int
+  data_cadastro datetime
+  data_alteracao datetime
+}
+
+Table tb_veiculo_carroceria {
+  id int [pk]
+  nome varchar(255) [not null]
+  deleted tinyint [not null]
+  data_cadastro datetime [not null]
+  data_alteracao datetime
+  url varchar(45)
+  tipo_veiculo varchar(1)
+  ordem int
+}
+
+Table tb_veiculo_categoria {
+  id int [pk]
+  nome varchar(50) [not null]
+  tipo_veiculo char(1) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_carroceria_versao {
+  id int [pk]
+  id_carroceria int
+  id_versao int
+  data_cadastro datetime
+  data_alteracao datetime
+}
+
+Table tb_veiculo_classificacao {
+  id int [pk]
+  nome varchar(200)
+  data_cadastro datetime
+  data_alteracao datetime
+}
+
+Table tb_veiculo_classificacao_veiculo {
+  id int [pk]
+  id_veiculo int
+  id_classificacao int
+}
+
+Table tb_veiculo_marca_modelo_info {
+  id int [pk]
+  id_veiculo_marca_modelo varchar(100) [not null]
+  imagem_fundo varchar(100)
+  imagem_miniatura varchar(100)
+  historia text [not null]
+  especificacoes_tecnicas text
+  consumo text
+  manutencao text
+  valor_revenda text
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_marca_modelo_info_foto {
+  id int [pk]
+  id_veiculo_marca_modelo_info int [not null]
+  imagem varchar(100)
+  ordem int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+  legenda varchar(200)
+}
+
+Table tb_veiculo_marca_modelo_info_opiniao {
+  id int [pk]
+  id_veiculo_marca_modelo int [not null]
+  nome varchar(100) [not null]
+  email varchar(150) [not null]
+  design float
+  performance float
+  conforto_acabamento float
+  dirigibilidade float
+  consumo float
+  manutencao float
+  custo_beneficio float
+  pontos_positivos text
+  pontos_negativos text
+  comentarios text
+  aprovado int [not null]
+  id_usuario_aprovou int
+  data_aprovacao datetime
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_combustivel {
+  id int [pk]
+  nome varchar(250) [not null]
+  deleted int [not null]
+  nao_exibir_filtro int
+}
+
+Table tb_veiculo_combustivel_sinonimo {
+  id int [pk]
+  id_veiculo_combustivel int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_combustivel_subfiltro {
+  id int [pk]
+  id_pai int [not null]
+  id_filho int [not null]
+}
+
+Table tb_veiculo_combustivel_tipo_veiculo {
+  id_combustivel bigint
+  tipo_veiculo char(1)
+  deleted int [not null]
+}
+
+Table tb_veiculo_cor {
+  id int [pk]
+  nome varchar(250) [not null]
+  hexadecimal varchar(10)
+  deleted int [not null]
+}
+
+Table tb_veiculo_cor_sinonimo {
+  id int [pk]
+  id_veiculo_cor int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_foto {
+  id int [pk]
+  id_veiculo int [not null]
+  foto varchar(200) [not null]
+  data_cadastro datetime [not null]
+  ordem int [not null]
+  versao int
+  enviado int
+  hash char(32)
+  url_original varchar(300)
+  quebrada int
+}
+
+Table tb_veiculo_historico {
+  id bigint [pk]
+  id_veiculo int [not null]
+  id_user int
+  origem varchar(50) [not null]
+  acao varchar(50) [not null]
+  dados_anteriores json
+  dados_novos json
+  data_alteracao datetime [not null]
+}
+
+Table tb_veiculo_excluido {
+  id int [pk]
+  titulo varchar(100)
+  id_cliente int [not null]
+  tipo_veiculo varchar(1) [not null]
+  placa varchar(8)
+  numero_documento varchar(20)
+  comprimento float
+  quilometragem int
+  qtd_portas int [not null]
+  ano_fabricacao int
+  ano_modelo int
+  id_marca bigint
+  id_modelo bigint
+  id_versao bigint
+  id_cor bigint
+  id_combustivel bigint
+  id_cambio bigint
+  aceita_troca int [not null]
+  descricao text
+  valor decimal(12,2) [not null]
+  data_cadastro datetime [not null]
+  lancamento int [not null]
+  qtd_acessos int [not null]
+  bloqueado int [not null]
+  ativo int [not null]
+  deleted int [not null]
+  aprovado int
+  revisao int
+  zero_km int
+  referencia varchar(90)
+  video_url varchar(90)
+  qualidade int
+  data_alteracao datetime
+  external_link varchar(250)
+}
+
+Table tb_veiculo_importacao {
+  id int [pk]
+  id_cliente int [not null]
+  integration_type_id int
+  tipo varchar(20) [not null]
+  url varchar(250) [not null]
+  deleted int [not null]
+  pausar int [not null]
+  destaque_manual int [not null]
+  aceita_troca_manual int [not null]
+  video_manual int [not null]
+  foto_manual int [not null]
+  ativa_desativa_manual tinyint
+  id_externo varchar(500)
+  username_api varchar(255)
+  password_api varchar(255)
+  valor_manual tinyint
+  email_estatisticas tinyint
+}
+
+Table tb_veiculo_importacao_fila {
+  id int [pk]
+  id_cliente int
+  email varchar(500)
+  nao_compara_xml int
+  forcar_download int
+  data_cadastro datetime
+  status int
+  nao_executar_antes datetime
+  tentativas int
+  data_inicio datetime
+  ultima_verificacao datetime
+  observacao varchar(200)
+  prioridade int
+  id_usuario_criacao int
+  forcar_carga_inicial int
+}
+
+Table tb_veiculo_importacao_log {
+  id int [pk]
+  id_cliente int [not null]
+  tipo varchar(20) [not null]
+  url varchar(250) [not null]
+  data_hora_inicio datetime [not null]
+  data_hora_termino datetime
+  email_destino varchar(200)
+  qtd_veiculos_adicionados int
+  qtd_veiculos_excluidos int
+  qtd_veiculos_existentes int
+  id_usuario_solicitou int
+  status char(1)
+  deleted int [not null]
+}
+
+Table tb_veiculo_importacao_log_dados {
+  id int [pk]
+  id_veiculo_importacao_log int [not null]
+  dados text [not null]
+  deleted int [not null]
+  id_veiculo int
+}
+
+Table tb_veiculo_importacao_opcionais_nao_encontrados {
+  id int [pk]
+  id_veiculo int [not null]
+  nome_opcional varchar(50) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_links {
+  qtd int [not null]
+  tipo_veiculo char(1)
+  id_marca int
+  id_modelo int
+  id_versao int
+  id_carroceria int
+  id_necessidade int
+  id_cidade int
+  id_uf int
+  pais int [not null]
+  menor_valor decimal(12,2)
+  maior_valor decimal(12,2)
+  valor_medio decimal(12,2)
+  url varchar(100)
+  nome varchar(100)
+  regiao varchar(100)
+  ordem int
+  nome_marca varchar(50)
+  nome_modelo varchar(50)
+  nome_versao varchar(50)
+  ligacao varchar(2)
+}
+
+Table tb_veiculo_mailing_veiculo {
+  id_mailing int [not null]
+  id_veiculo int [not null]
+}
+
+Table tb_veiculo_mailing_cidade {
+  id_mailing int [not null]
+  id_cidade int [not null]
+}
+
+Table tb_veiculo_mailing_historico {
+  id int [pk]
+  id_mailing int [not null]
+  data_envio datetime [not null]
+}
+
+Table tb_veiculo_mailing_historico_veiculo {
+  id_mailing int [not null]
+  id_veiculo int [not null]
+  data_envio datetime [not null]
+}
+
+Table tb_veiculo_mailing_modelo {
+  id_mailing int [not null]
+  id_modelo int [not null]
+}
+
+Table tb_veiculo_mailing {
+  id int [pk]
+  categoria char(1)
+  tipo char(1) [not null]
+  titulo varchar(250) [not null]
+  data_cadastro date [not null]
+  deleted int [not null]
+  status int [not null]
+}
+
+Table tb_veiculo_mailing_enviado {
+  email varchar(255) [not null]
+  id_veiculo int [not null]
+}
+
+Table tb_veiculo_mailing_lista_email {
+  id int [pk]
+  email varchar(255) [not null]
+  id_cidade int [not null]
+  id_marca int [not null]
+  id_modelo int [not null]
+  id_versao int [not null]
+  data_cadastro datetime [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_marca_modelo_versao_nao_encontrada {
+  id int [pk]
+  id_marca int [not null]
+  id_modelo int [not null]
+  nome varchar(250)
+  verificado int [not null]
+  deleted int [not null]
+  data_alteracao datetime
+  id_cliente int
+}
+
+Table tb_veiculo_marca_sinonimo {
+  id int [pk]
+  id_veiculo_marca int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+  data_criacao datetime
+}
+
+Table tb_veiculo_marca_modelo_sinonimo {
+  id int [pk]
+  id_veiculo_marca_modelo int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+  data_criacao datetime
+}
+
+Table tb_veiculo_marca_modelo_versao {
+  id bigint [pk]
+  id_modelo bigint [not null]
+  nome varchar(250) [not null]
+  deleted int [not null]
+  url varchar(100)
+  data_alteracao datetime
+}
+
+Table tb_veiculo_marca_modelo_versao_sinonimo {
+  id int [pk]
+  id_veiculo_marca_modelo_versao int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+  data_criacao datetime
+}
+
+Table tb_veiculo_marca_nao_encontrada {
+  id int [pk]
+  tipo_veiculo char(1) [not null]
+  id_cliente int
+  nome varchar(250)
+  verificado int [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_necessidade {
+  id int [pk]
+  nome varchar(255) [not null]
+  descricao text
+  deleted tinyint [not null]
+  data_cadastro datetime [not null]
+  data_alteracao datetime
+  url varchar(200)
+  ordem int
+  incluir_sitemap tinyint [not null]
+}
+
+Table tb_veiculo_necessidade_veiculo {
+  id int [pk]
+  id_veiculo int
+  id_necessidade int
+}
+
+Table tb_veiculo_opcional {
+  id int [pk]
+  nome varchar(250) [not null]
+  deleted int [not null]
+  publico int [not null]
+  exibir_filtro int
+}
+
+Table tb_veiculo_opcional_sinonimo {
+  id int [pk]
+  id_veiculo_opcional int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_opcional_tipo_veiculo {
+  id_opcional bigint
+  tipo_veiculo char(1)
+  deleted int [not null]
+}
+
+Table tb_veiculo_opcional_veiculo {
+  id_veiculo int
+  id_veiculo_opcional bigint
+}
+
+Table tb_veiculo_oportunidade {
+  id_veiculo int [not null]
+  id_cliente int [not null]
+  excluido int
+  respondido int [not null]
+  data_resposta datetime
+  resposta text
+  assunto varchar(150)
+}
+
+Table tb_veiculo_ordenacao {
+  id_veiculo int [pk]
+  ordem_tipo_modelo_cidade int
+  ordem_tipo_modelo_estado int
+  ordem_tipo_modelo_pais int
+  ordem_tipo_marca_cidade int
+  ordem_tipo_marca_estado int
+  ordem_tipo_marca_pais int
+  ordem_tipo_cidade int
+  ordem_tipo_estado int
+  ordem_tipo_pais int
+  ordem_tipo_modelo_cidade_usado int
+  ordem_tipo_modelo_estado_usado int
+  ordem_tipo_modelo_pais_usado int
+  ordem_tipo_marca_cidade_usado int
+  ordem_tipo_marca_estado_usado int
+  ordem_tipo_marca_pais_usado int
+  ordem_tipo_cidade_usado int
+  ordem_tipo_estado_usado int
+  ordem_tipo_pais_usado int
+}
+
+Table tb_veiculo_outra_informacao {
+  id int [pk]
+  nome varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_outra_informacao_sinonimo {
+  id int [pk]
+  id_veiculo_outra_informacao int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_outra_informacao_tipo_veiculo {
+  id_outra_informacao bigint
+  tipo_veiculo char(1)
+  deleted int [not null]
+}
+
+Table tb_veiculo_outra_informacao_veiculo {
+  id_veiculo int
+  id_veiculo_outra_informacao bigint
+}
+
+Table tb_veiculo_plano_assinatura_cliente {
+  id int [pk]
+  id_cliente int [not null]
+  id_veiculo_plano_assinatura int [not null]
+  id_veiculo_plano_assinatura_valor int
+  id_contrato int
+  variacao_veiculo_plano_assinatura int [not null]
+  forma_pagamento varchar(10)
+  qtd_parcelas int
+  valor_parcela decimal(9,2)
+  valor_total decimal(9,2)
+  valor_destaque decimal(9,2)
+  data_cadastro datetime [not null]
+  data_pagamento datetime
+  data_inicio_assinatura date
+  data_termino_assinatura date
+  autenticacao_gateway varchar(200)
+  retorno_gateway text
+  id_transacao_gateway varchar(200)
+  possui_destaque int [not null]
+  data_retorno_gateway datetime
+  ativo int [not null]
+  pago int [not null]
+  observacoes text
+  deleted int [not null]
+  valor_total_avista decimal(9,2)
+  valor_pago decimal(9,2)
+  historico_retorno_gateway text
+  nosso_numero_boleto varchar(45)
+}
+
+Table tb_veiculo_plano_assinatura_valor {
+  id int [pk]
+  id_plano int
+  id_regiao int
+  id_grupo int
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  id_usuario_alterou int
+  deleted int
+  plan_price decimal(10,0)
+  highlight_price decimal(10,0)
+  valor decimal(9,2)
+}
+
+Table tb_veiculo_plano_assinatura {
+  id int [pk]
+  nome varchar(255)
+  classe_cor varchar(15)
+  tipo_pessoa char(2) [not null]
+  qtd_veiculos int [not null]
+  qtd_videos int [not null]
+  qtd_fotos int [not null]
+  gratuito int [not null]
+  recomendado int [not null]
+  possui_destaque int [not null]
+  qtd_destaque int [not null]
+  publico int [not null]
+  comprar_destaque int [not null]
+  valor_destaque decimal(9,2)
+  tempo_valor1 int [not null]
+  fator_tempo_valor1 char(1)
+  valor1 decimal(9,2)
+  qtd_parcelas_valor1 int
+  valor_parcelas_valor1 decimal(9,2)
+  tempo_valor2 int
+  fator_tempo_valor2 char(1)
+  valor2 decimal(9,2)
+  qtd_parcelas_valor2 int
+  valor_parcelas_valor2 decimal(9,2)
+  tempo_valor3 int
+  fator_tempo_valor3 char(1)
+  valor3 decimal(9,2)
+  qtd_parcelas_valor3 int
+  valor_parcelas_valor3 decimal(9,2)
+  termo_adesao text
+  ordem int [not null]
+  deleted int [not null]
+  valor1_promocional decimal(9,2)
+  valor2_promocional decimal(9,2)
+  valor3_promocional decimal(9,2)
+  valor_parcelas_valor1_promocional decimal(9,2)
+  valor_parcelas_valor2_promocional decimal(9,2)
+  valor_parcelas_valor3_promocional decimal(9,2)
+  desconto_percentual int
+  desconto_percentual_avista int
+  possui_nome_customizado int
+  id_base_plan int
+  id_base_highlight int
+  total_value decimal(10,2)
+  qtd_parcelas int
+}
+
+Table tb_veiculo_plano_assinatura_cliente_veiculo {
+  id_veiculo_plano_assinatura_cliente int
+  id_veiculo int
+  destaque int [not null]
+}
+
+Table tb_veiculo_plano_assinatura_cliente_veiculo_tmp {
+  id_veiculo_plano_assinatura_cliente int
+  id_veiculo int
+  destaque int [not null]
+}
+
+Table tb_veiculo_plano_assinatura_regiao {
+  id int [pk]
+  nome_regiao varchar(100)
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  deleted int
+  id_uf int
+  id_usuario_alterou int
+  all int
+}
+
+Table tb_veiculo_plano_assinatura_grupo {
+  id int [pk]
+  nome varchar(500)
+  data_criacao datetime
+  data_alteracao datetime
+  id_usuario_criador int
+  id_usuario_alterou int
+  deleted int
+  visivel_pre_cadastro int
+  tipo_pessoa varchar(50)
+  visivel_site int
+  departamentos_visiveis_pre_cadastro json
+}
+
+Table tb_veiculo_plano_assinatura_uf {
+  id_veiculo_plano_assinatura int
+  id_uf int
+  deleted int [not null]
+}
+
+Table tb_veiculo_plano_assinatura_regiao_cidade {
+  id int [pk]
+  id_regiao int
+  id_cidade int
+}
+
+Table tb_veiculo_proposta {
+  id int [pk]
+  id_veiculo int [not null]
+  nome varchar(200) [not null]
+  telefone varchar(20)
+  email varchar(200)
+  mensagem text
+  financiar int [not null]
+  valor_entrada varchar(15)
+  parcelamento char(3)
+  veiculo_troca int [not null]
+  receber_news int [not null]
+  data_proposta datetime [not null]
+  visualizado int [not null]
+  respondido int [not null]
+  deleted int [not null]
+  assunto_resposta varchar(200)
+  resposta text
+  data_resposta datetime
+  utm_source varchar(500)
+  utm_medium varchar(500)
+  utm_campaign varchar(500)
+  enviado_guia int [not null]
+  origem int
+  data_importacao datetime
+  id_proposta_tipo int
+  qualidade float
+  destaque int
+  receber_leadsnamao int
+  visita int
+  data_agendamento date
+  tipo_visita varchar(45)
+  cpfcnpj varchar(18)
+  send_sqs tinyint
+  id_contrato int
+}
+
+Table tb_veiculo_video {
+  id int [pk]
+  id_veiculo int [not null]
+  video varchar(200) [not null]
+  data_cadastro datetime [not null]
+  ordem int [not null]
+}
+
+Table tb_veiculo_revisao {
+  id int [pk]
+  id_veiculo int
+  nome_marca varchar(250)
+  nome_modelo varchar(250)
+  nome_versao varchar(250)
+  tipo varchar(10)
+  data_cadastro datetime
+  data_alteracao datetime
+  deleted int
+}
+
+Table tb_veiculo_seo_tag {
+  id int [pk]
+  url varchar(50)
+  cidade int [not null]
+  tipo char(1)
+  marca int [not null]
+  modelo int [not null]
+  titulo varchar(250)
+  titulo_html varchar(250)
+  subtitulo varchar(250)
+  descricao varchar(250)
+  deleted int [not null]
+}
+
+Table tb_veiculo_seo_texto {
+  id int [pk]
+  tipo_veiculo char(1)
+  id_uf int
+  id_cidade int
+  id_marca int
+  id_modelo int
+  texto text
+  titulo varchar(200)
+  dados text
+  deleted int [not null]
+}
+
+Table tb_veiculo_seo_texto_faq {
+  id int [pk]
+  seo_text_id int [not null]
+  question varchar(255) [not null]
+  answer text [not null]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table tb_veiculo_solicitacao_telefone {
+  id int [pk]
+  id_veiculo int
+  nome varchar(200)
+  email varchar(200)
+  telefone varchar(15)
+  horario int
+  data_cadastro datetime
+}
+
+Table tb_veiculo_tipo_cambio {
+  id int [pk]
+  nome varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_tipo_cambio_sinonimo {
+  id int [pk]
+  id_veiculo_tipo_cambio int [not null]
+  nome_sinonimo varchar(250) [not null]
+  deleted int [not null]
+}
+
+Table tb_veiculo_tipo_cambio_tipo_veiculo {
+  id_tipo_cambio bigint
+  tipo_veiculo char(1)
+  deleted int [not null]
+}
+
+Table tb_vendedor {
+  id int [pk]
+  nome varchar(200) [not null]
+  telefone varchar(20)
+  email varchar(200)
+  codigo varchar(20)
+  deleted int [not null]
+  tipo int [not null]
+  comissao_parcelas int
+  comissao_parcela_inicial int
+  comissao_percentual decimal(5,4)
+  comissao_ativo int
+  perfil int
+  data_inicio date
+  data_fim date
+  documento varchar(18)
+  tipo_fechamento varchar(20)
+  faixas_comissao json
+  id_regiao_tabela_veiculo int
+  id_regiao_tabela_imovel int
+  id_empresa int [not null]
+  id_pontomais int
+  id_cidade int
+  is_new_crm tinyint [not null]
+}
+
+Table tb_vendedor_comissao {
+  id int [pk]
+  id_mensalidade int
+  id_vendedor int
+  data_chave date
+  id_cliente int
+  data_vencimento date
+  data_pagamento date
+  valor_total decimal(9,2)
+  valor_pago decimal(9,2)
+  parcela int
+  valor_base decimal(9,2)
+  valor_comissao decimal(9,2)
+  aditivo int
+  desconsiderado int [not null]
+  deleted int [not null]
+  inadimplente int
+  tipo_fechamento varchar(20)
+  id_vendedor_original int
+  data_criacao datetime
+  id_financeiro_comissao_venda int
+}
+
+Table tb_vendedor_comissao_fechada {
+  id int [pk]
+  id_vendedor int
+  data_chave date
+  data_fechamento datetime
+  id_user int
+}
+
+Table tb_vendedor_comissao_semana {
+  id int [pk]
+  data_inicial date
+  data_final date
+}
+
+Table tb_vendedor_grupo {
+  id int [pk]
+  id_vendedor_pai int
+  id_vendedor int
+  data_inicio date [not null]
+  data_fim date
+  deleted tinyint [not null]
+  perfil tinyint [not null]
+}
+
+Table tb_vendedor_metadata {
+  id int [pk]
+  id_vendedor int [not null]
+  provider varchar(100) [not null]
+  meta_key varchar(255) [not null]
+  meta_value text
+  created_at datetime
+  updated_at datetime
+}
+
+Table tb_vendedor_user {
+  id int [pk]
+  id_user int [not null]
+  id_vendedor int [not null]
+  data_cadastro datetime
+  data_exclusao datetime
+  id_user_cadastro int
+  id_user_exclusao int
+  deleted int
+}
+
+Table tb_webmotors {
+  id int [pk]
+  unique_id varchar(45)
+  data_cadastro datetime
+  data_alteracao datetime
+  codigo_fipe varchar(45)
+  carroceria varchar(45)
+  baixou_interna int
+}
+
+Table tb_webscraper_bairros {
+  id int [pk]
+  nome_bairro varchar(200)
+  id_cidade int
+  data_cadastro datetime
+  origem varchar(100)
+  deleted int
+  verificado int
+  id_bairro int
+}
+
+Ref: tb_cliente.id < tb_analise_imovel_conta.id_cliente
+Ref: tb_cliente.id < tb_analise_imovel_contato.id_cliente
+Ref: tb_imovel_tipo.id < tb_analise_imovel_contato.id_imovel_tipo
+Ref: tb_bairro.id < tb_analise_imovel_contato.id_bairro
+Ref: tb_cidade.id < tb_analise_imovel_contato.id_cidade
+Ref: tb_cliente.id < tb_analise_imovel_leads.id_cliente
+Ref: tb_imovel_tipo.id < tb_analise_imovel_leads.id_imovel_tipo
+Ref: tb_bairro.id < tb_analise_imovel_leads.id_bairro
+Ref: tb_cidade.id < tb_analise_imovel_leads.id_cidade
+Ref: tb_cliente.id < tb_analise_imovel_plano.id_cliente
+Ref: tb_imovel_plano_assinatura.id < tb_analise_imovel_plano.id_imovel_plano_assinatura
+Ref: tb_cliente.id < tb_analise_imovel_qualidade.id_cliente
+Ref: tb_imovel_tipo.id < tb_analise_imovel_qualidade.id_imovel_tipo
+Ref: tb_bairro.id < tb_analise_imovel_qualidade.id_bairro
+Ref: tb_cidade.id < tb_analise_imovel_qualidade.id_cidade
+Ref: tb_cliente.id < tb_analise_imovel_quantidade.id_cliente
+Ref: tb_imovel_tipo.id < tb_analise_imovel_quantidade.id_imovel_tipo
+Ref: tb_bairro.id < tb_analise_imovel_quantidade.id_bairro
+Ref: tb_cidade.id < tb_analise_imovel_quantidade.id_cidade
+Ref: tb_cliente.id < tb_analise_veiculo_conta.id_cliente
+Ref: tb_cliente.id < tb_analise_veiculo_contato.id_cliente
+Ref: tb_veiculo_marca.id < tb_analise_veiculo_contato.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_analise_veiculo_contato.id_modelo
+Ref: tb_cidade.id < tb_analise_veiculo_contato.id_cidade
+Ref: tb_cliente.id < tb_analise_veiculo_leads.id_cliente
+Ref: tb_veiculo_marca.id < tb_analise_veiculo_leads.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_analise_veiculo_leads.id_modelo
+Ref: tb_cidade.id < tb_analise_veiculo_leads.id_cidade
+Ref: tb_cliente.id < tb_analise_veiculo_plano.id_cliente
+Ref: tb_veiculo_plano_assinatura.id < tb_analise_veiculo_plano.id_veiculo_plano_assinatura
+Ref: tb_cliente.id < tb_analise_veiculo_qualidade.id_cliente
+Ref: tb_veiculo_marca.id < tb_analise_veiculo_qualidade.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_analise_veiculo_qualidade.id_modelo
+Ref: tb_cidade.id < tb_analise_veiculo_qualidade.id_cidade
+Ref: tb_cliente.id < tb_analise_veiculo_quantidade.id_cliente
+Ref: tb_veiculo_marca.id < tb_analise_veiculo_quantidade.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_analise_veiculo_quantidade.id_modelo
+Ref: tb_cidade.id < tb_analise_veiculo_quantidade.id_cidade
+Ref: tb_cliente.id < tb_autenticacao_log.id_cliente
+Ref: tb_sys_user.id < tb_autenticacao_log.id_user
+Ref: tb_cidade.id < tb_bairro.id_cidade
+Ref: tb_bairro_sinonimo.id < tb_bairro.id_bairro_sinonimo
+Ref: tb_cidade_zona.id < tb_bairro.id_cidade_zona
+Ref: tb_bairro.id < tb_bairro_imovel.id_bairro
+Ref: tb_cidade.id < tb_bairro_imovel.id_cidade
+Ref: tb_bairro.id < tb_bairro_info.id_bairro
+Ref: tb_bairro_info.id < tb_bairro_info_foto.id_bairro_info
+Ref: tb_bairro_info.id < tb_bairro_info_opiniao.id_bairro_info
+Ref: tb_sys_user.id < tb_bairro_info_opiniao.id_usuario_aprovou
+Ref: tb_cidade.id < tb_bairro_nao_encontrado.id_cidade
+Ref: tb_cliente.id < tb_bairro_nao_encontrado.id_cliente
+Ref: tb_bairro_nao_encontrado.id < tb_bairro_nao_encontrado_dados.id_bairro_nao_encontrado
+Ref: tb_bairro.id < tb_bairro_sinonimo.id_bairro
+Ref: tb_bairro.id < tb_bairro_sugestao_lat_lng.id_bairro
+Ref: tb_bairro.id < tb_bairro_vizinho.id_bairro
+Ref: tb_bairro_vizinho.id < tb_bairro_vizinho.id_bairro_vizinho
+Ref: tb_cliente.id < tb_boleto.id_cliente
+Ref: tb_sys_user.id < tb_boleto.id_usuario_registro_pagamento
+Ref: tb_empresa.id < tb_boleto.id_empresa
+Ref: tb_sys_user.id < tb_boleto_remessa.id_usuario
+Ref: tb_boleto_remessa.id < tb_boleto_remessa_boleto.id_boleto_remessa
+Ref: tb_boleto.id < tb_boleto_remessa_boleto.id_boleto
+Ref: tb_buscador_imovel_filtro.id < tb_buscador_imovel_filtro_palavra_chave.id_buscador_imovel_filtro
+Ref: tb_buscador_imovel_filtro.id < tb_buscador_imovel_filtro_sinonimo.id_buscador_imovel_filtro
+Ref: tb_buscador_veiculo_filtro.id < tb_buscador_veiculo_filtro_palavra_chave.id_buscador_veiculo_filtro
+Ref: tb_buscador_veiculo_filtro.id < tb_buscador_veiculo_filtro_sinonimo.id_buscador_veiculo_filtro
+Ref: tb_cliente.id < tb_cancelamentos.id_cliente
+Ref: tb_financeiro_contrato.id < tb_cancelamentos.id_contrato
+Ref: tb_sys_user.id < tb_cancelamentos.id_user
+Ref: tb_cliente_congelado_motivo.id < tb_cancelamentos.id_motivo_cancelamento
+Ref: tb_cliente.id < tb_cartao.id_cliente
+Ref: tb_empresa.id < tb_cartao.id_empresa
+Ref: tb_sys_user.id < tb_chamado.id_usuario_responsavel
+Ref: tb_cliente.id < tb_chamado.id_cliente
+Ref: tb_financeiro_contrato.id < tb_chamado.id_contrato
+Ref: tb_sys_user.id < tb_chamado.id_usuario_fechou
+Ref: tb_chamado.id < tb_chamado_anexos.id_chamado
+Ref: tb_uf.id < tb_cidade.id_uf
+Ref: tb_cidade.id < tb_cidade_bonificada.id_cidade
+Ref: tb_cidade.id < tb_cidade_imovel.id_cidade
+Ref: tb_uf.id < tb_cidade_nao_encontrada.id_uf
+Ref: tb_cliente.id < tb_cidade_nao_encontrada.id_cliente
+Ref: tb_cidade.id < tb_cidade_regiao.id_cidade
+Ref: tb_cidade_regiao.id < tb_cidade_regiao_bairro.id_cidade_regiao
+Ref: tb_bairro.id < tb_cidade_regiao_bairro.id_bairro
+Ref: tb_cidade.id < tb_cidade_regiao_metropolitana.id_cidade
+Ref: tb_cidade.id < tb_cidade_regiao_metropolitana_new.id_cidade
+Ref: tb_cidade_regiao.id < tb_cidade_regiao_sinonima.id_cidade_regiao
+Ref: tb_cidade.id < tb_cidade_revendedora.id_cidade
+Ref: tb_cidade.id < tb_cidade_sinonima.id_cidade
+Ref: tb_cidade.id < tb_cidade_zona.id_cidade
+Ref: tb_cidade_zona.id < tb_cidade_zona_sinonima.id_cidade_zona
+Ref: tb_cidade.id < tb_cliente.id_cidade
+Ref: tb_empresa.id < tb_cliente.id_empresa_contrato
+Ref: tb_empresa.id < tb_cliente.id_empresa_boletos
+Ref: tb_cliente.id < tb_cliente_buscas.id_cliente
+Ref: tb_cliente.id < tb_cliente_congelamento.id_cliente
+Ref: tb_financeiro_contrato.id < tb_cliente_congelamento.id_contrato
+Ref: tb_sys_user.id < tb_cliente_congelamento.id_usuario_congelou
+Ref: tb_sys_user.id < tb_cliente_congelamento.id_usuario_descongelou
+Ref: tb_cliente.id < tb_cliente_filial.id_cliente
+Ref: tb_cidade.id < tb_cliente_filial.id_cidade
+Ref: tb_bairro.id < tb_cliente_filial.id_bairro
+Ref: tb_uf.id < tb_cliente_filial.id_uf
+Ref: tb_cliente.id < tb_cliente_foto.id_cliente
+Ref: tb_cliente.id < tb_cliente_imobiliaria_ordem.id_cliente
+Ref: tb_cliente.id < tb_cliente_leads_na_mao_imovel.id_cliente
+Ref: tb_imovel_tipo.id < tb_cliente_leads_na_mao_imovel.id_imovel_tipo
+Ref: tb_cliente.id < tb_cliente_publicidade.id_cliente
+Ref: tb_cliente.id < tb_cliente_reset_senha.id_cliente
+Ref: tb_cliente.id < tb_cliente_resumo_conteudo.id_cliente
+Ref: tb_financeiro_contrato.id < tb_cliente_resumo_conteudo.id_contrato
+Ref: tb_integracao.id < tb_cliente_resumo_conteudo.id_integracao
+Ref: tb_parceiro.id < tb_cliente_resumo_conteudo.id_parceiro
+Ref: tb_comissao_fechada.id < tb_comissao_detalhamento.id_comissao_fechada
+Ref: tb_financeiro_contrato.id < tb_comissao_detalhamento.id_contrato
+Ref: tb_pagamento.id < tb_comissao_detalhamento.id_pagamento
+Ref: tb_cliente.id < tb_comissao_detalhamento.id_cliente
+Ref: tb_vendedor.id < tb_comissao_detalhamento.id_vendedor
+Ref: tb_vendedor.id < tb_comissao_fechada.id_vendedor
+Ref: tb_sys_user.id < tb_comissao_fechada.id_user_fechamento
+Ref: tb_imovel_plano_assinatura_grupo.id < tb_configuracao_pre_cadastro_imovel.id_imovel_plano_assinatura_grupo
+Ref: tb_imovel_plano_assinatura_regiao.id < tb_configuracao_pre_cadastro_imovel.id_imovel_plano_assinatura_regiao
+Ref: tb_veiculo_plano_assinatura_grupo.id < tb_configuracao_pre_cadastro_veiculo.id_veiculo_plano_assinatura_grupo
+Ref: tb_veiculo_plano_assinatura_regiao.id < tb_configuracao_pre_cadastro_veiculo.id_veiculo_plano_assinatura_regiao
+Ref: tb_banco.id < tb_conta_bancaria.id_banco
+Ref: tb_empresa.id < tb_conta_bancaria.id_empresa
+Ref: tb_uf.id < tb_contato_pj.id_uf
+Ref: tb_cidade.id < tb_contato_pj.id_cidade
+Ref: tb_bairro.id < tb_contato_pj.id_bairro
+Ref: tb_cliente.id < tb_contato_pj.id_cliente
+Ref: tb_vendedor.id < tb_contato_pj.id_vendedor
+Ref: tb_imovel_plano_assinatura_valor.id < tb_contato_pj.id_imovel_plano_assinatura_valor
+Ref: tb_veiculo_plano_assinatura_valor.id < tb_contato_pj.id_veiculo_plano_assinatura_valor
+Ref: tb_contato_pj.id < tb_contato_pj_historico.id_contato_pj
+Ref: tb_sys_user.id < tb_contato_pj_historico.id_user
+Ref: tb_uf.id < tb_contato_pj_tmp.id_uf
+Ref: tb_cidade.id < tb_contato_pj_tmp.id_cidade
+Ref: tb_bairro.id < tb_contato_pj_tmp.id_bairro
+Ref: tb_cliente.id < tb_contato_pj_tmp.id_cliente
+Ref: tb_vendedor.id < tb_contato_pj_tmp.id_vendedor
+Ref: tb_imovel_plano_assinatura_valor.id < tb_contato_pj_tmp.id_imovel_plano_assinatura_valor
+Ref: tb_veiculo_plano_assinatura_valor.id < tb_contato_pj_tmp.id_veiculo_plano_assinatura_valor
+Ref: tb_uf.id < tb_contato_tabela_fipe.id_uf
+Ref: tb_cliente.id < tb_contrato_conversao.id_cliente
+Ref: tb_financeiro_contrato.id < tb_contrato_conversao.id_contrato
+Ref: tb_cliente.id < tb_email_atendimento_cliente.id_cliente
+Ref: tb_email_atendimento_tipo.id < tb_email_atendimento_cliente.id_email_atendimento_tipo
+Ref: tb_sys_user.id < tb_email_atendimento_cliente.id_user
+Ref: tb_imovel.id < tb_email_log.id_imovel
+Ref: tb_email_log.id < tb_email_log_tratativa.id_email_log
+Ref: tb_cliente.id < tb_email_log_tratativa.id_cliente
+Ref: tb_imovel.id < tb_email_tentativa_bloqueado_log.id_imovel
+Ref: tb_cliente.id < tb_email_transacional_enviado_interesse.id_cliente
+Ref: tb_bairro.id < tb_empresa.id_bairro
+Ref: tb_uf.id < tb_estatistica_uf.id_uf
+Ref: tb_cliente.id < tb_estatisticas_imovel_cliente.id_cliente
+Ref: tb_financeiro_contrato.id < tb_estatisticas_imovel_cliente.id_contrato
+Ref: tb_imovel.id < tb_estatisticas_imovel_diario.id_imovel
+Ref: tb_imovel.id < tb_estatisticas_imovel_diario2.id_imovel
+Ref: tb_imovel.id < tb_estatisticas_imovel_geral.id_imovel
+Ref: tb_imovel.id < tb_estatisticas_imovel_historico.id_imovel
+Ref: tb_veiculo.id < tb_estatisticas_veiculo.id_veiculo
+Ref: tb_cliente.id < tb_estatisticas_veiculo_cliente.id_cliente
+Ref: tb_financeiro_contrato.id < tb_estatisticas_veiculo_cliente.id_contrato
+Ref: tb_veiculo.id < tb_estatisticas_veiculo_diario.id_veiculo
+Ref: tb_veiculo.id < tb_estatisticas_veiculo_geral.id_veiculo
+Ref: tb_cliente.id < tb_favorito.id_cliente
+Ref: tb_uf.id < tb_feriado.id_uf
+Ref: tb_cidade.id < tb_feriado.id_cidade
+Ref: tb_cliente.id < tb_financeiro_bonificacao.id_cliente
+Ref: tb_financeiro_contrato.id < tb_financeiro_bonificacao.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_bonificacao.id_usuario
+Ref: tb_sys_user.id < tb_financeiro_cartao_avulso.id_usuario_adicionou
+Ref: tb_cliente.id < tb_financeiro_comissao_venda.id_cliente
+Ref: tb_vendedor.id < tb_financeiro_comissao_venda.id_vendedor
+Ref: tb_financeiro_contrato.id < tb_financeiro_comissao_venda.id_contrato
+Ref: tb_cliente.id < tb_financeiro_contrato.id_cliente
+Ref: tb_vendedor.id < tb_financeiro_contrato.id_vendedor
+Ref: tb_sys_user.id < tb_financeiro_contrato.id_usuario_cancelou
+Ref: tb_cliente_congelado_motivo.id < tb_financeiro_contrato.id_motivo_cancelamento
+Ref: tb_sys_user.id < tb_financeiro_contrato.id_usuario_verificou
+Ref: tb_sys_user.id < tb_financeiro_contrato.id_usuario_alterou
+Ref: tb_cliente.id < tb_financeiro_contrato.id_cliente_indicacao
+Ref: tb_empresa.id < tb_financeiro_contrato.id_empresa_contrato
+Ref: tb_empresa.id < tb_financeiro_contrato.id_empresa_boletos
+Ref: tb_financeiro_contrato.id < tb_financeiro_contrato.id_contrato_pai
+Ref: tb_financeiro_contrato.id < tb_financeiro_contrato_aditivo.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_contrato_aditivo.id_usuario_adicionou
+Ref: tb_vendedor.id < tb_financeiro_contrato_aditivo.id_vendedor
+Ref: tb_sys_user.id < tb_financeiro_contrato_cancelado_motivo.id_usuario
+Ref: tb_cliente.id < tb_financeiro_contrato_cliente.id_cliente
+Ref: tb_financeiro_contrato.id < tb_financeiro_contrato_cliente.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_contrato_historico.sys_user_id
+Ref: tb_cliente.id < tb_financeiro_contrato_pre_cadastro.id_cliente
+Ref: tb_vendedor.id < tb_financeiro_contrato_pre_cadastro.id_vendedor
+Ref: tb_sys_user.id < tb_financeiro_contrato_pre_cadastro.id_usuario_verificou
+Ref: tb_cliente.id < tb_financeiro_contrato_pre_cadastro.id_cliente_indicacao
+Ref: tb_empresa.id < tb_financeiro_contrato_pre_cadastro.id_empresa_contrato
+Ref: tb_empresa.id < tb_financeiro_contrato_pre_cadastro.id_empresa_boletos
+Ref: tb_financeiro_contrato.id < tb_financeiro_contrato_pre_cadastro.id_contrato_pai
+Ref: tb_financeiro_contrato_pre_cadastro.id < tb_financeiro_contrato_pre_cadastro_fila.id_financeiro_contrato_pre_cadastro
+Ref: tb_cliente.id < tb_financeiro_contrato_pre_cadastro_log.id_cliente
+Ref: tb_chamado_tipo.id < tb_financeiro_contrato_status.id_chamado_tipo
+Ref: tb_chamado_tipo.id < tb_financeiro_contrato_status_chamado_tipo.id_chamado_tipo
+Ref: tb_financeiro_contrato.id < tb_financeiro_desconto.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_desconto.id_usuario_adicionou
+Ref: tb_financeiro_contrato.id < tb_financeiro_desconto_acrescimo.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_desconto_acrescimo.id_usuario_adicionou
+Ref: tb_financeiro_contrato.id < tb_financeiro_mensalidade.id_contrato
+Ref: tb_vendedor.id < tb_financeiro_mensalidade.id_vendedor
+Ref: tb_sys_user.id < tb_financeiro_mensalidade.id_usuario_marcou_pago
+Ref: tb_cliente.id < tb_financeiro_mensalidade_historico.id_cliente
+Ref: tb_financeiro_contrato.id < tb_financeiro_mensalidade_historico.id_contrato
+Ref: tb_sys_user.id < tb_financeiro_mensalidade_historico.id_usuario_adicionou
+Ref: tb_vendedor.id < tb_financeiro_pagamento_comissao.id_vendedor
+Ref: tb_sys_user.id < tb_financeiro_pagamento_comissao.id_user_fechamento
+Ref: tb_sys_user.id < tb_forca_atualizacao_elasticsearch.id_usuario
+Ref: tb_uf.id < tb_form_sem_resultados_imovel.id_uf
+Ref: tb_cidade.id < tb_form_sem_resultados_imovel.id_cidade
+Ref: tb_form_sem_resultados_imovel.id < tb_form_sem_resultados_imovel_cliente.id_form_sem_resultados_imovel
+Ref: tb_cliente.id < tb_form_sem_resultados_imovel_cliente.id_cliente
+Ref: tb_cliente.id < tb_form_sem_resultados_veiculo_cliente.id_cliente
+Ref: tb_veiculo_marca.id < tb_form_sem_resultados_veiculos.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_form_sem_resultados_veiculos.id_modelo
+Ref: tb_uf.id < tb_form_sem_resultados_veiculos.id_uf
+Ref: tb_cidade.id < tb_form_sem_resultados_veiculos.id_cidade
+Ref: tb_imovel_tipo.id < tb_galeria_combo.id_imovel_tipo
+Ref: tb_uf.id < tb_galeria_combo.id_uf
+Ref: tb_cidade.id < tb_galeria_combo.id_cidade
+Ref: tb_bairro.id < tb_galeria_combo.id_bairro
+Ref: tb_imagem.id < tb_galeria_combo.id_imagem
+Ref: tb_veiculo_marca.id < tb_galeria_combo.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_galeria_combo.id_modelo
+Ref: tb_imovel_tipo.id < tb_galeria_url.id_imovel_tipo
+Ref: tb_uf.id < tb_galeria_url.id_uf
+Ref: tb_cidade.id < tb_galeria_url.id_cidade
+Ref: tb_bairro.id < tb_galeria_url.id_bairro
+Ref: tb_veiculo_marca.id < tb_galeria_url.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_galeria_url.id_modelo
+Ref: tb_cliente.id < tb_gerencia_link_contrato.id_cliente
+Ref: tb_financeiro_contrato.id < tb_gerencia_link_contrato.id_contrato
+Ref: tb_sys_user.id < tb_gerencia_link_contrato.id_usuario_aprovou
+Ref: tb_cliente.id < tb_imovel.id_cliente
+Ref: tb_imovel_tipo.id < tb_imovel.id_imovel_tipo
+Ref: tb_cidade.id < tb_imovel.id_cidade
+Ref: tb_bairro.id < tb_imovel.id_bairro
+Ref: tb_cliente_filial.id < tb_imovel.id_cliente_filial
+Ref: tb_bairro_sinonimo.id < tb_imovel.id_bairro_sinonimo
+Ref: tb_imovel_periodo_locacao.id < tb_imovel.id_periodo_locacao
+Ref: tb_logradouro.id < tb_imovel.id_logradouro
+Ref: tb_imovel.id < tb_imovel_agendar_visita.id_imovel
+Ref: tb_cidade.id < tb_imovel_alerta.id_cidade
+Ref: tb_imovel.id < tb_imovel_alerta.id_imovel
+Ref: tb_imovel_tipo.id < tb_imovel_alerta.id_imovel_tipo
+Ref: tb_imovel.id < tb_imovel_alerta_imovel.id_imovel
+Ref: tb_imovel_area_comum.id < tb_imovel_area_comum_imovel.id_imovel_area_comum
+Ref: tb_imovel.id < tb_imovel_area_comum_imovel.id_imovel
+Ref: tb_cliente.id < tb_imovel_area_comum_nao_encontrada.id_cliente
+Ref: tb_imovel_area_comum.id < tb_imovel_area_comum_sinonima.id_imovel_area_comum
+Ref: tb_imovel_area_comum.id < tb_imovel_area_comum_tipo_imovel.id_imovel_area_comum
+Ref: tb_imovel_tipo.id < tb_imovel_area_comum_tipo_imovel.id_imovel_tipo
+Ref: tb_imovel_area_macro_grupo.id < tb_imovel_area_grupo.id_imovel_area_macro_grupo
+Ref: tb_imovel_area_grupo.id < tb_imovel_area_grupo_imovel_tipo.id_imovel_area_grupo
+Ref: tb_imovel_tipo.id < tb_imovel_area_grupo_imovel_tipo.id_imovel_tipo
+Ref: tb_imovel_tipo.id < tb_imovel_area_grupo_imovel_tipo_relacionado.id_imovel_tipo
+Ref: tb_imovel_area_grupo.id < tb_imovel_area_grupo_imovel_tipo_relacionado.id_imovel_area_grupo
+Ref: tb_sys_user.id < tb_imovel_area_grupo_imovel_tipo_relacionado.id_usuario_alterou
+Ref: tb_imovel_area_grupo.id < tb_imovel_area_grupo_item.id_imovel_area_grupo
+Ref: tb_imovel_area_comum.id < tb_imovel_area_grupo_item.id_imovel_area_comum
+Ref: tb_imovel_area_privativa.id < tb_imovel_area_grupo_item.id_imovel_area_privativa
+Ref: tb_imovel.id < tb_imovel_area_grupo_resumo.id_imovel
+Ref: tb_imovel_area_grupo.id < tb_imovel_area_grupo_resumo.id_imovel_area_grupo
+Ref: tb_imovel_area_privativa.id < tb_imovel_area_privativa_imovel.id_imovel_area_privativa
+Ref: tb_imovel.id < tb_imovel_area_privativa_imovel.id_imovel
+Ref: tb_cliente.id < tb_imovel_area_privativa_nao_encontrada.id_cliente
+Ref: tb_imovel_area_privativa.id < tb_imovel_area_privativa_sinonima.id_imovel_area_privativa
+Ref: tb_imovel_area_privativa.id < tb_imovel_area_privativa_tipo_imovel.id_imovel_area_privativa
+Ref: tb_imovel_tipo.id < tb_imovel_area_privativa_tipo_imovel.id_imovel_tipo
+Ref: tb_imovel.id < tb_imovel_ativo_historico.id_imovel
+Ref: tb_imovel.id < tb_imovel_busca.id_imovel
+Ref: tb_cliente.id < tb_imovel_busca.id_cliente
+Ref: tb_imovel_tipo.id < tb_imovel_busca.id_imovel_tipo
+Ref: tb_cidade.id < tb_imovel_busca.id_cidade
+Ref: tb_bairro.id < tb_imovel_busca.id_bairro
+Ref: tb_bairro_sinonimo.id < tb_imovel_busca.id_bairro_sinonimo
+Ref: tb_cliente_filial.id < tb_imovel_busca.id_cliente_filial
+Ref: tb_imovel.id < tb_imovel_busca_order_rand.id_imovel
+Ref: tb_imovel_caracteristica_importante.id < tb_imovel_caracteristica_importante_opcao.id_imovel_caracteristica_importante
+Ref: tb_imovel.id < tb_imovel_caracteristica_importante_opcao_imovel.id_imovel
+Ref: tb_imovel_caracteristica_importante_opcao.id < tb_imovel_caracteristica_importante_opcao_imovel.id_imovel_caracteristica_importante_opcao
+Ref: tb_imovel_caracteristica_importante.id < tb_imovel_caracteristica_importante_tipo_imovel.id_imovel_caracteristica_importante
+Ref: tb_imovel_tipo.id < tb_imovel_caracteristica_importante_tipo_imovel.id_imovel_tipo
+Ref: tb_imovel_caracteristica.id < tb_imovel_caracteristica_opcao.id_imovel_caracteristica
+Ref: tb_imovel.id < tb_imovel_caracteristica_opcao_imovel.id_imovel
+Ref: tb_imovel_caracteristica_opcao.id < tb_imovel_caracteristica_opcao_imovel.id_imovel_caracteristica_opcao
+Ref: tb_imovel_caracteristica.id < tb_imovel_caracteristica_tipo_imovel.id_imovel_caracteristica
+Ref: tb_imovel_tipo.id < tb_imovel_caracteristica_tipo_imovel.id_imovel_tipo
+Ref: tb_imovel.id < tb_imovel_condicao_locacao_imovel.id_imovel
+Ref: tb_imovel_condicao_locacao.id < tb_imovel_condicao_locacao_imovel.id_imovel_condicao_locacao
+Ref: tb_cliente.id < tb_imovel_consolidado.id_cliente
+Ref: tb_imovel_tipo.id < tb_imovel_consolidado.id_imovel_tipo
+Ref: tb_uf.id < tb_imovel_consolidado.id_uf
+Ref: tb_cidade.id < tb_imovel_consolidado.id_cidade
+Ref: tb_cidade_regiao.id < tb_imovel_consolidado.id_cidade_regiao
+Ref: tb_bairro.id < tb_imovel_consolidado.id_bairro
+Ref: tb_logradouro.id < tb_imovel_consolidado.id_logradouro
+Ref: tb_cliente.id < tb_imovel_excluido.id_cliente
+Ref: tb_imovel_tipo.id < tb_imovel_excluido.id_imovel_tipo
+Ref: tb_cidade.id < tb_imovel_excluido.id_cidade
+Ref: tb_bairro.id < tb_imovel_excluido.id_bairro
+Ref: tb_cliente_filial.id < tb_imovel_excluido.id_cliente_filial
+Ref: tb_imovel.id < tb_imovel_forma_pagamento_imovel.id_imovel
+Ref: tb_imovel_forma_pagamento.id < tb_imovel_forma_pagamento_imovel.id_imovel_forma_pagamento
+Ref: tb_imovel.id < tb_imovel_foto.id_imovel
+Ref: tb_imovel.id < tb_imovel_historico.id_imovel
+Ref: tb_cliente.id < tb_imovel_historico.id_cliente
+Ref: tb_sys_user.id < tb_imovel_historico.id_user
+Ref: tb_imovel.id < tb_imovel_integracao.id_imovel
+Ref: tb_imovel_tipo.id < tb_imovel_mailing.id_imovel_tipo
+Ref: tb_mailing_imovel.id < tb_imovel_mailing_bairro.id_mailing
+Ref: tb_bairro.id < tb_imovel_mailing_bairro.id_bairro
+Ref: tb_mailing_imovel.id < tb_imovel_mailing_cidade.id_mailing
+Ref: tb_cidade.id < tb_imovel_mailing_cidade.id_cidade
+Ref: tb_imovel.id < tb_imovel_mailing_enviado.id_imovel
+Ref: tb_mailing_imovel.id < tb_imovel_mailing_historico.id_mailing
+Ref: tb_mailing_imovel.id < tb_imovel_mailing_historico_imovel.id_mailing
+Ref: tb_imovel.id < tb_imovel_mailing_historico_imovel.id_imovel
+Ref: tb_mailing_imovel.id < tb_imovel_mailing_imovel.id_mailing
+Ref: tb_imovel.id < tb_imovel_mailing_imovel.id_imovel
+Ref: tb_cidade.id < tb_imovel_mailing_lista_email.id_cidade
+Ref: tb_bairro.id < tb_imovel_mailing_lista_email.id_bairro
+Ref: tb_imovel_tipo.id < tb_imovel_mailing_lista_email.id_imovel_tipo
+Ref: tb_cliente.id < tb_imovel_nao_importado.id_cliente
+Ref: tb_imovel_tipo.id < tb_imovel_nao_importado.id_imovel_tipo
+Ref: tb_imovel.id < tb_imovel_oportunidade.id_imovel
+Ref: tb_cliente.id < tb_imovel_oportunidade.id_cliente
+Ref: tb_imovel.id < tb_imovel_ordem.id_imovel
+Ref: tb_imovel.id < tb_imovel_ordenacao.id_imovel
+Ref: tb_base_plan.id < tb_imovel_plano_assinatura.id_base_plan
+Ref: tb_cliente.id < tb_imovel_plano_assinatura_cliente.id_cliente
+Ref: tb_imovel_plano_assinatura.id < tb_imovel_plano_assinatura_cliente.id_imovel_plano_assinatura
+Ref: tb_imovel_plano_assinatura_valor.id < tb_imovel_plano_assinatura_cliente.id_imovel_plano_assinatura_valor
+Ref: tb_financeiro_contrato.id < tb_imovel_plano_assinatura_cliente.id_contrato
+Ref: tb_imovel_plano_assinatura_cliente.id < tb_imovel_plano_assinatura_cliente_imovel.id_imovel_plano_assinatura_cliente
+Ref: tb_imovel.id < tb_imovel_plano_assinatura_cliente_imovel.id_imovel
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_grupo.id_usuario_criador
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_grupo.id_usuario_alterou
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_regiao.id_usuario_criador
+Ref: tb_uf.id < tb_imovel_plano_assinatura_regiao.id_uf
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_regiao.id_usuario_alterou
+Ref: tb_cidade.id < tb_imovel_plano_assinatura_regiao_cidade.id_cidade
+Ref: tb_imovel_plano_assinatura.id < tb_imovel_plano_assinatura_uf.id_imovel_plano_assinatura
+Ref: tb_uf.id < tb_imovel_plano_assinatura_uf.id_uf
+Ref: tb_imovel_plano_assinatura.id < tb_imovel_plano_assinatura_valor.id_plano
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_valor.id_usuario_criador
+Ref: tb_sys_user.id < tb_imovel_plano_assinatura_valor.id_usuario_alterou
+Ref: tb_imovel.id < tb_imovel_proposta.id_imovel
+Ref: tb_proposta_tipo.id < tb_imovel_proposta.id_proposta_tipo
+Ref: tb_financeiro_contrato.id < tb_imovel_proposta.id_contrato
+Ref: tb_imovel.id < tb_imovel_proposta_importacao.id_imovel
+Ref: tb_sys_user.id < tb_imovel_proposta_importacao.id_usuario_enviou
+Ref: tb_imovel_proposta.id < tb_imovel_proposta_simulacao_financiamento.id_imovel_proposta
+Ref: tb_imovel_tipo.id < tb_imovel_resumo.id_imovel_tipo
+Ref: tb_cidade.id < tb_imovel_resumo.id_cidade
+Ref: tb_uf.id < tb_imovel_resumo.id_uf
+Ref: tb_bairro.id < tb_imovel_resumo.id_bairro
+Ref: tb_imovel_tipo.id < tb_imovel_resumo_conveniencia.id_imovel_tipo
+Ref: tb_imovel_area_grupo.id < tb_imovel_resumo_conveniencia.id_imovel_area_grupo
+Ref: tb_cidade.id < tb_imovel_resumo_conveniencia.id_cidade
+Ref: tb_bairro.id < tb_imovel_resumo_conveniencia.id_bairro
+Ref: tb_imovel_tipo.id < tb_imovel_resumo_novo.id_imovel_tipo
+Ref: tb_cidade.id < tb_imovel_resumo_novo.id_cidade
+Ref: tb_uf.id < tb_imovel_resumo_novo.id_uf
+Ref: tb_cidade_regiao.id < tb_imovel_resumo_novo.id_cidade_regiao
+Ref: tb_bairro.id < tb_imovel_resumo_novo.id_bairro
+Ref: tb_logradouro.id < tb_imovel_resumo_novo.id_logradouro
+Ref: tb_imovel_tipo.id < tb_imovel_seo_tag.id_imovel_tipo
+Ref: tb_imovel_tipo.id < tb_imovel_seo_texto.id_imovel_tipo
+Ref: tb_uf.id < tb_imovel_seo_texto.id_uf
+Ref: tb_cidade.id < tb_imovel_seo_texto.id_cidade
+Ref: tb_bairro.id < tb_imovel_seo_texto.id_bairro
+Ref: tb_imovel.id < tb_imovel_solicitacao_telefone.id_imovel
+Ref: tb_imovel_tipo_nao_encontrado.id < tb_imovel_tipo_nao_encontrado_imovel.id_imovel_tipo_nao_encontrado
+Ref: tb_cliente.id < tb_imovel_tipo_nao_encontrado_imovel.id_cliente
+Ref: tb_imovel.id < tb_imovel_tipo_nao_encontrado_imovel.id_imovel
+Ref: tb_imovel.id < tb_imovel_video.id_imovel
+Ref: tb_cliente.id < tb_importacao.id_cliente
+Ref: tb_importacao.id < tb_importacao_linhas.id_importacao
+Ref: tb_cidade_revendedora.id < tb_importacao_revendedora_log.id_cidade_revendedora
+Ref: tb_cliente.id < tb_importacao_upload.id_cliente
+Ref: tb_cliente.id < tb_integracao.id_cliente
+Ref: tb_financeiro_contrato.id < tb_integracao.id_contrato
+Ref: tb_parceiro.id < tb_integracao.id_parceiro
+Ref: tb_integracao_padrao.id < tb_integracao.id_padrao
+Ref: tb_cliente.id < tb_integracao_fila.id_cliente
+Ref: tb_cliente.id < tb_integracao_fila_manual.id_cliente
+Ref: tb_sys_user.id < tb_integracao_fila_manual.id_usuario_criou
+Ref: tb_cliente.id < tb_integracao_leads.id_cliente
+Ref: tb_parceiro.id < tb_integracao_leads.id_parceiro
+Ref: tb_cliente.id < tb_integracao_leads_fila.id_cliente
+Ref: tb_imovel.id < tb_integracao_leads_fila.id_imovel
+Ref: tb_integracao_leads.id < tb_integracao_leads_parametros.id_integracao_leads
+Ref: tb_integracao.id < tb_integracao_log.id_integracao
+Ref: tb_cliente.id < tb_integracao_log.id_cliente
+Ref: tb_integracao_log.id < tb_integracao_log_dados.id_integracao_log
+Ref: tb_imovel.id < tb_integracao_log_dados.id_imovel
+Ref: tb_parceiro.id < tb_integracao_parceiro_padrao.id_parceiro
+Ref: tb_cliente.id < tb_lead_corretor.id_cliente
+Ref: tb_imovel.id < tb_lead_corretor.id_imovel
+Ref: tb_cliente.id < tb_lead_corretor_cliente.id_cliente
+Ref: tb_cliente.id < tb_ligacao.id_cliente
+Ref: tb_cliente.id < tb_ligacao_configuracao.id_cliente
+Ref: tb_sys_user.id < tb_ligacao_configuracao.id_usuario
+Ref: tb_imovel.id < tb_ligacao_imovel.id_imovel
+Ref: tb_ligacao.id < tb_ligacao_imovel.id_ligacao
+Ref: tb_cliente.id < tb_ligacao_imovel.id_cliente
+Ref: tb_ligacao.id < tb_ligacao_observacao.id_ligacao
+Ref: tb_veiculo.id < tb_ligacao_veiculo.id_veiculo
+Ref: tb_ligacao.id < tb_ligacao_veiculo.id_ligacao
+Ref: tb_cliente.id < tb_ligacao_veiculo.id_cliente
+Ref: tb_imovel_tipo.id < tb_link.id_imovel_tipo
+Ref: tb_uf.id < tb_link.id_uf
+Ref: tb_cidade.id < tb_link.id_cidade
+Ref: tb_bairro.id < tb_link.id_bairro
+Ref: tb_cliente.id < tb_log_webservice.id_cliente
+Ref: tb_bairro.id < tb_logradouro.id_bairro
+Ref: tb_bairro.id < tb_logradouro_imovel.id_bairro
+Ref: tb_logradouro.id < tb_logradouro_imovel.id_logradouro
+Ref: tb_cidade.id < tb_logradouro_imovel.id_cidade
+Ref: tb_uf.id < tb_logradouro_imovel.id_uf
+Ref: tb_cidade.id < tb_logradouro_nao_encontrado.id_cidade
+Ref: tb_bairro.id < tb_logradouro_nao_encontrado.id_bairro
+Ref: tb_cidade.id < tb_logradouro_sinonimo.id_cidade
+Ref: tb_bairro.id < tb_logradouro_sinonimo.id_bairro
+Ref: tb_logradouro.id < tb_logradouro_sinonimo.id_logradouro
+Ref: tb_cidade.id < tb_logradouro_unico.id_cidade
+Ref: tb_logradouro.id < tb_logradouro_unico_cep.id_logradouro
+Ref: tb_bairro.id < tb_logradouro_unico_cep.id_bairro
+Ref: tb_cidade.id < tb_logradouro_unico_cep.id_cidade
+Ref: tb_cidade.id < tb_mailing_contact.id_cidade
+Ref: tb_mailing_contact.id < tb_mailing_contact_group.id_mailing_contact
+Ref: tb_mailing_group.id < tb_mailing_contact_group.id_mailing_group
+Ref: tb_sys_user.id < tb_mailing_html.id_usuario_adicionou
+Ref: tb_mailing_html.id < tb_mailing_html_arquivos.id_mailing_html
+Ref: tb_mailing_html.id < tb_mailing_html_envio.id_mailing_html
+Ref: tb_mailing_contact.id < tb_mailing_html_envio.id_mailing_contact
+Ref: tb_mailing_html.id < tb_mailing_html_grupo.id_mailing_html
+Ref: tb_cidade.id < tb_mailing_imovel.id_cidade
+Ref: tb_sys_user.id < tb_mailing_imovel.id_usuario_adicionou
+Ref: tb_mailing_noticia.id < tb_mailing_imovel.id_noticia
+Ref: tb_mailing_imovel.id < tb_mailing_imovel_anuncio.id_mailing_imovel
+Ref: tb_imovel.id < tb_mailing_imovel_anuncio.id_imovel
+Ref: tb_mailing_imovel.id < tb_mailing_imovel_envio.id_mailing_imovel
+Ref: tb_mailing_contact.id < tb_mailing_imovel_envio.id_mailing_contact
+Ref: tb_mailing_imovel.id < tb_mailing_imovel_grupo.id_mailing_imovel
+Ref: tb_mailing_noticia_envio.id < tb_mailing_noticia.id_noticia1
+Ref: tb_mailing_noticia_envio.id < tb_mailing_noticia.id_noticia2
+Ref: tb_mailing_noticia_envio.id < tb_mailing_noticia.id_noticia3
+Ref: tb_mailing_noticia_envio.id < tb_mailing_noticia.id_noticia4
+Ref: tb_sys_user.id < tb_mailing_noticia.id_usuario_adicionou
+Ref: tb_mailing_noticia.id < tb_mailing_noticia_envio.id_mailing_noticia
+Ref: tb_mailing_contact.id < tb_mailing_noticia_envio.id_mailing_contact
+Ref: tb_mailing_noticia.id < tb_mailing_noticia_grupo.id_mailing_noticia
+Ref: tb_cidade.id < tb_mailing_veiculo.id_cidade
+Ref: tb_sys_user.id < tb_mailing_veiculo.id_usuario_adicionou
+Ref: tb_mailing_noticia.id < tb_mailing_veiculo.id_noticia
+Ref: tb_mailing_veiculo.id < tb_mailing_veiculo_anuncio.id_mailing_veiculo
+Ref: tb_veiculo.id < tb_mailing_veiculo_anuncio.id_veiculo
+Ref: tb_mailing_veiculo.id < tb_mailing_veiculo_envio.id_mailing_veiculo
+Ref: tb_mailing_contact.id < tb_mailing_veiculo_envio.id_mailing_contact
+Ref: tb_mailing_veiculo.id < tb_mailing_veiculo_grupo.id_mailing_veiculo
+Ref: tb_mailing_veiculo.id < tb_mailing_veiculo_propostas_modelo.id_mailing_veiculo
+Ref: tb_veiculo_marca_modelo.id < tb_mailing_veiculo_propostas_modelo.id_veiculo_marca_modelo
+Ref: tb_cliente.id < tb_nfs.id_cliente
+Ref: tb_empresa.id < tb_nfs.id_empresa
+Ref: tb_cliente.id < tb_operacional_cliente.id_cliente
+Ref: tb_operacional_usuario.id < tb_operacional_cliente.id_operacional_usuario
+Ref: tb_cidade.id < tb_operacional_cliente.id_cidade
+Ref: tb_operacional_cliente.id < tb_operacional_cliente_log.id_operacional_cliente
+Ref: tb_operacional_usuario.id < tb_operacional_cliente_log.id_operacional_usuario
+Ref: tb_operacional_cliente.id < tb_operacional_fotos_log.id_operacional_cliente
+Ref: tb_operacional_usuario.id < tb_operacional_fotos_log.id_operacional_usuario
+Ref: tb_veiculo.id < tb_operacional_fotos_log.id_veiculo
+Ref: tb_operacional_cliente.id < tb_operacional_usuario_rota_diaria.id_operacional_cliente
+Ref: tb_operacional_cliente.id < tb_operacional_usuario_rota_especial.id_operacional_cliente
+Ref: tb_operacional_usuario.id < tb_operacional_usuario_rota_especial.id_operacional_usuario
+Ref: tb_operacional_cliente.id < tb_operacional_videos_log.id_operacional_cliente
+Ref: tb_operacional_usuario.id < tb_operacional_videos_log.id_operacional_usuario
+Ref: tb_veiculo.id < tb_operacional_videos_log.id_veiculo
+Ref: tb_cliente.id < tb_pagamento.id_cliente
+Ref: tb_boleto.id < tb_pagamento.id_boleto
+Ref: tb_cartao.id < tb_pagamento.id_cartao
+Ref: tb_nfs.id < tb_pagamento.id_nfs
+Ref: tb_empresa.id < tb_pagamento.id_empresa
+Ref: tb_palavra.id < tb_palavra_relacionamento.id_palavra
+Ref: tb_sys_user.id < tb_pre_cadastro_alerta.id_usuario_criacao
+Ref: tb_sys_user.id < tb_pre_cadastro_alerta.id_usuario_alterou
+Ref: tb_uf.id < tb_pre_cadastro_fila.id_uf
+Ref: tb_cidade.id < tb_pre_cadastro_fila.id_cidade
+Ref: tb_vendedor.id < tb_pre_cadastro_fila.id_vendedor
+Ref: tb_vendedor.id < tb_pre_cadastro_link.id_vendedor
+Ref: tb_financeiro_contrato_pre_cadastro.id < tb_pre_cadastro_link.id_financeiro_contrato_pre_cadastro
+Ref: tb_processo_cron.id < tb_processo_cron_log.id_processo_cron
+Ref: tb_cliente.id < tb_processo_cron_log.id_cliente
+Ref: tb_cidade.id < tb_regiao_imovel.id_cidade
+Ref: tb_uf.id < tb_regiao_imovel.id_uf
+Ref: tb_sys_user.id < tb_regra_pre_cadastro.id_usuario_criou
+Ref: tb_sys_user.id < tb_regra_pre_cadastro.id_usuario_alterou
+Ref: tb_cliente.id < tb_representante_comissao_expansao.id_usuario_alterou
+Ref: tb_cliente.id < tb_representante_comissao_expansao_cliente.id_cliente
+Ref: tb_representante_comissao_expansao.id < tb_representante_comissao_expansao_cliente.id_representante_comissao_expansao
+Ref: tb_cidade_revendedora.id < tb_revendedora.id_cidade_revendedora
+Ref: tb_logradouro.id < tb_revendedora.id_logradouro
+Ref: tb_revendedora.id < tb_revendedora_telefone.id_revendedora
+Ref: tb_telefone.id < tb_revendedora_telefone.id_telefone
+Ref: tb_cidade.id < tb_robo_google_logradouro_model.id_cidade
+Ref: tb_bairro.id < tb_robo_google_logradouro_model.id_bairro
+Ref: tb_bairro.id < tb_sinonimos_bairro.id_bairro
+Ref: tb_cidade.id < tb_sinonimos_cidade.id_cidade
+Ref: tb_veiculo_cor.id < tb_sinonimos_cor.id_cor
+Ref: tb_veiculo_marca_modelo.id < tb_sinonimos_modelo_veiculo.id_modelo
+Ref: tb_veiculo_opcional.id < tb_sinonimos_opcional_veiculo.id_opcional_veiculo
+Ref: tb_sys_user.id < tb_sinonimos_tipo_imovel.id_usuario_add
+Ref: tb_veiculo_marca_modelo_versao.id < tb_sinonimos_versao_veiculo.id_versao
+Ref: tb_sitemap_arquivo.id < tb_sitemap_url.id_sitemap_arquivo
+Ref: tb_sys_user.id < tb_sys_log.id_user
+Ref: tb_sys_profile.id < tb_sys_permission.id_profile
+Ref: tb_sys_profile.id < tb_sys_user.id_profile
+Ref: tb_veiculo_marca.id < tb_tabela_fipe.id_marca
+Ref: tb_veiculo_combustivel.id < tb_tabela_fipe.id_combustivel
+Ref: tb_veiculo_tipo_cambio.id < tb_tabela_fipe.id_cambio
+Ref: tb_tabela_fipe.id < tb_tabela_fipe_modelo.id_tabela_fipe
+Ref: tb_veiculo_marca.id < tb_tabela_fipe_modelo.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_tabela_fipe_modelo.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_tabela_fipe_modelo.id_versao
+Ref: tb_veiculo_tipo_cambio.id < tb_tabela_fipe_modelo.id_cambio
+Ref: tb_veiculo_combustivel.id < tb_tabela_fipe_modelo.id_combustivel
+Ref: tb_sys_user.id < tb_tabela_fipe_troca_url_ignorada.id_usuario_cadastrou
+Ref: tb_tabela_fipe.id < tb_tabela_fipe_valor.id_tabela_fipe
+Ref: tb_tabela_fipe.id < tb_tabela_fipe_valor_mes.id_tabela_fipe
+Ref: tb_sys_user.id < tb_template_email_cliente.id_usuario_cadastro
+Ref: tb_cliente.id < tb_template_email_cliente.id_usuario_alterou
+Ref: tb_cidade.id < tb_texto_imoveis.id_cidade
+Ref: tb_bairro.id < tb_texto_imoveis.id_bairro
+Ref: tb_cidade.id < tb_texto_veiculos.id_cidade
+Ref: tb_veiculo_marca.id < tb_texto_veiculos.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_texto_veiculos.id_modelo
+Ref: tb_uf.id < tb_uf_bonificada.id_uf
+Ref: tb_imovel_tipo.id < tb_urls_busca_itens.id_imovel_tipo
+Ref: tb_cidade.id < tb_valida_cep_unico.id_cidade
+Ref: tb_cliente.id < tb_veiculo.id_cliente
+Ref: tb_veiculo_marca.id < tb_veiculo.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo.id_versao
+Ref: tb_veiculo_cor.id < tb_veiculo.id_cor
+Ref: tb_veiculo_combustivel.id < tb_veiculo.id_combustivel
+Ref: tb_veiculo_tipo_cambio.id < tb_veiculo.id_cambio
+Ref: tb_cidade.id < tb_veiculo_alerta.id_cidade
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_alerta.id_modelo
+Ref: tb_veiculo.id < tb_veiculo_alerta.id_veiculo
+Ref: tb_veiculo_marca.id < tb_veiculo_alerta.id_marca
+Ref: tb_veiculo_alerta.id < tb_veiculo_alerta_veiculo.id_alerta
+Ref: tb_veiculo.id < tb_veiculo_alerta_veiculo.id_veiculo
+Ref: tb_veiculo.id < tb_veiculo_busca.id_veiculo
+Ref: tb_cliente.id < tb_veiculo_busca.id_cliente
+Ref: tb_veiculo_marca.id < tb_veiculo_busca.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_busca.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_busca.id_versao
+Ref: tb_veiculo_cor.id < tb_veiculo_busca.id_cor
+Ref: tb_veiculo_combustivel.id < tb_veiculo_busca.id_combustivel
+Ref: tb_veiculo_tipo_cambio.id < tb_veiculo_busca.id_cambio
+Ref: tb_cidade.id < tb_veiculo_busca.id_cidade
+Ref: tb_veiculo_carroceria.id < tb_veiculo_carroceria_modelo.id_carroceria
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_carroceria_modelo.id_modelo
+Ref: tb_veiculo_carroceria.id < tb_veiculo_carroceria_versao.id_carroceria
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_carroceria_versao.id_versao
+Ref: tb_veiculo.id < tb_veiculo_classificacao_veiculo.id_veiculo
+Ref: tb_veiculo_classificacao.id < tb_veiculo_classificacao_veiculo.id_classificacao
+Ref: tb_veiculo_combustivel.id < tb_veiculo_combustivel_sinonimo.id_veiculo_combustivel
+Ref: tb_veiculo_combustivel.id < tb_veiculo_combustivel_tipo_veiculo.id_combustivel
+Ref: tb_veiculo_cor.id < tb_veiculo_cor_sinonimo.id_veiculo_cor
+Ref: tb_cliente.id < tb_veiculo_excluido.id_cliente
+Ref: tb_veiculo_marca.id < tb_veiculo_excluido.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_excluido.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_excluido.id_versao
+Ref: tb_veiculo_cor.id < tb_veiculo_excluido.id_cor
+Ref: tb_veiculo_combustivel.id < tb_veiculo_excluido.id_combustivel
+Ref: tb_veiculo_tipo_cambio.id < tb_veiculo_excluido.id_cambio
+Ref: tb_veiculo.id < tb_veiculo_foto.id_veiculo
+Ref: tb_veiculo.id < tb_veiculo_historico.id_veiculo
+Ref: tb_sys_user.id < tb_veiculo_historico.id_user
+Ref: tb_cliente.id < tb_veiculo_importacao.id_cliente
+Ref: tb_cliente.id < tb_veiculo_importacao_fila.id_cliente
+Ref: tb_cliente.id < tb_veiculo_importacao_log.id_cliente
+Ref: tb_veiculo_importacao_log.id < tb_veiculo_importacao_log_dados.id_veiculo_importacao_log
+Ref: tb_veiculo.id < tb_veiculo_importacao_log_dados.id_veiculo
+Ref: tb_veiculo.id < tb_veiculo_importacao_opcionais_nao_encontrados.id_veiculo
+Ref: tb_veiculo_marca.id < tb_veiculo_links.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_links.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_links.id_versao
+Ref: tb_cidade.id < tb_veiculo_links.id_cidade
+Ref: tb_uf.id < tb_veiculo_links.id_uf
+Ref: tb_mailing_veiculo.id < tb_veiculo_mailing_cidade.id_mailing
+Ref: tb_cidade.id < tb_veiculo_mailing_cidade.id_cidade
+Ref: tb_veiculo.id < tb_veiculo_mailing_enviado.id_veiculo
+Ref: tb_mailing_veiculo.id < tb_veiculo_mailing_historico.id_mailing
+Ref: tb_mailing_veiculo.id < tb_veiculo_mailing_historico_veiculo.id_mailing
+Ref: tb_veiculo.id < tb_veiculo_mailing_historico_veiculo.id_veiculo
+Ref: tb_cidade.id < tb_veiculo_mailing_lista_email.id_cidade
+Ref: tb_veiculo_marca.id < tb_veiculo_mailing_lista_email.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_mailing_lista_email.id_modelo
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_mailing_lista_email.id_versao
+Ref: tb_mailing_veiculo.id < tb_veiculo_mailing_modelo.id_mailing
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_mailing_modelo.id_modelo
+Ref: tb_mailing_veiculo.id < tb_veiculo_mailing_veiculo.id_mailing
+Ref: tb_veiculo.id < tb_veiculo_mailing_veiculo.id_veiculo
+Ref: tb_veiculo_marca.id < tb_veiculo_marca_modelo.id_marca
+Ref: tb_veiculo_categoria.id < tb_veiculo_marca_modelo.id_veiculo_categoria
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_marca_modelo_info.id_veiculo_marca_modelo
+Ref: tb_veiculo_marca_modelo_info.id < tb_veiculo_marca_modelo_info_foto.id_veiculo_marca_modelo_info
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_marca_modelo_info_opiniao.id_veiculo_marca_modelo
+Ref: tb_sys_user.id < tb_veiculo_marca_modelo_info_opiniao.id_usuario_aprovou
+Ref: tb_veiculo_marca.id < tb_veiculo_marca_modelo_nao_encontrado.id_marca
+Ref: tb_cliente.id < tb_veiculo_marca_modelo_nao_encontrado.id_cliente
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_marca_modelo_sinonimo.id_veiculo_marca_modelo
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_marca_modelo_versao.id_modelo
+Ref: tb_veiculo_marca.id < tb_veiculo_marca_modelo_versao_nao_encontrada.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_marca_modelo_versao_nao_encontrada.id_modelo
+Ref: tb_cliente.id < tb_veiculo_marca_modelo_versao_nao_encontrada.id_cliente
+Ref: tb_veiculo_marca_modelo_versao.id < tb_veiculo_marca_modelo_versao_sinonimo.id_veiculo_marca_modelo_versao
+Ref: tb_cliente.id < tb_veiculo_marca_nao_encontrada.id_cliente
+Ref: tb_veiculo_marca.id < tb_veiculo_marca_sinonimo.id_veiculo_marca
+Ref: tb_veiculo.id < tb_veiculo_necessidade_veiculo.id_veiculo
+Ref: tb_veiculo_opcional.id < tb_veiculo_opcional_sinonimo.id_veiculo_opcional
+Ref: tb_veiculo.id < tb_veiculo_opcional_veiculo.id_veiculo
+Ref: tb_veiculo_opcional.id < tb_veiculo_opcional_veiculo.id_veiculo_opcional
+Ref: tb_veiculo.id < tb_veiculo_oportunidade.id_veiculo
+Ref: tb_cliente.id < tb_veiculo_oportunidade.id_cliente
+Ref: tb_veiculo.id < tb_veiculo_ordenacao.id_veiculo
+Ref: tb_veiculo_outra_informacao.id < tb_veiculo_outra_informacao_sinonimo.id_veiculo_outra_informacao
+Ref: tb_veiculo.id < tb_veiculo_outra_informacao_veiculo.id_veiculo
+Ref: tb_veiculo_outra_informacao.id < tb_veiculo_outra_informacao_veiculo.id_veiculo_outra_informacao
+Ref: tb_base_plan.id < tb_veiculo_plano_assinatura.id_base_plan
+Ref: tb_cliente.id < tb_veiculo_plano_assinatura_cliente.id_cliente
+Ref: tb_veiculo_plano_assinatura.id < tb_veiculo_plano_assinatura_cliente.id_veiculo_plano_assinatura
+Ref: tb_veiculo_plano_assinatura_valor.id < tb_veiculo_plano_assinatura_cliente.id_veiculo_plano_assinatura_valor
+Ref: tb_financeiro_contrato.id < tb_veiculo_plano_assinatura_cliente.id_contrato
+Ref: tb_veiculo_plano_assinatura_cliente.id < tb_veiculo_plano_assinatura_cliente_veiculo.id_veiculo_plano_assinatura_cliente
+Ref: tb_veiculo.id < tb_veiculo_plano_assinatura_cliente_veiculo.id_veiculo
+Ref: tb_veiculo_plano_assinatura_cliente.id < tb_veiculo_plano_assinatura_cliente_veiculo_tmp.id_veiculo_plano_assinatura_cliente
+Ref: tb_veiculo.id < tb_veiculo_plano_assinatura_cliente_veiculo_tmp.id_veiculo
+Ref: tb_sys_user.id < tb_veiculo_plano_assinatura_grupo.id_usuario_criador
+Ref: tb_cliente.id < tb_veiculo_plano_assinatura_grupo.id_usuario_alterou
+Ref: tb_sys_user.id < tb_veiculo_plano_assinatura_regiao.id_usuario_criador
+Ref: tb_uf.id < tb_veiculo_plano_assinatura_regiao.id_uf
+Ref: tb_cliente.id < tb_veiculo_plano_assinatura_regiao.id_usuario_alterou
+Ref: tb_cidade.id < tb_veiculo_plano_assinatura_regiao_cidade.id_cidade
+Ref: tb_veiculo_plano_assinatura.id < tb_veiculo_plano_assinatura_uf.id_veiculo_plano_assinatura
+Ref: tb_uf.id < tb_veiculo_plano_assinatura_uf.id_uf
+Ref: tb_sys_user.id < tb_veiculo_plano_assinatura_valor.id_usuario_criador
+Ref: tb_cliente.id < tb_veiculo_plano_assinatura_valor.id_usuario_alterou
+Ref: tb_veiculo.id < tb_veiculo_proposta.id_veiculo
+Ref: tb_proposta_tipo.id < tb_veiculo_proposta.id_proposta_tipo
+Ref: tb_financeiro_contrato.id < tb_veiculo_proposta.id_contrato
+Ref: tb_veiculo.id < tb_veiculo_revisao.id_veiculo
+Ref: tb_uf.id < tb_veiculo_seo_texto.id_uf
+Ref: tb_cidade.id < tb_veiculo_seo_texto.id_cidade
+Ref: tb_veiculo_marca.id < tb_veiculo_seo_texto.id_marca
+Ref: tb_veiculo_marca_modelo.id < tb_veiculo_seo_texto.id_modelo
+Ref: tb_veiculo.id < tb_veiculo_solicitacao_telefone.id_veiculo
+Ref: tb_veiculo_tipo_cambio.id < tb_veiculo_tipo_cambio_sinonimo.id_veiculo_tipo_cambio
+Ref: tb_veiculo_tipo_cambio.id < tb_veiculo_tipo_cambio_tipo_veiculo.id_tipo_cambio
+Ref: tb_veiculo.id < tb_veiculo_video.id_veiculo
+Ref: tb_empresa.id < tb_vendedor.id_empresa
+Ref: tb_cidade.id < tb_vendedor.id_cidade
+Ref: tb_vendedor.id < tb_vendedor_comissao.id_vendedor
+Ref: tb_cliente.id < tb_vendedor_comissao.id_cliente
+Ref: tb_financeiro_comissao_venda.id < tb_vendedor_comissao.id_financeiro_comissao_venda
+Ref: tb_vendedor.id < tb_vendedor_comissao_fechada.id_vendedor
+Ref: tb_sys_user.id < tb_vendedor_comissao_fechada.id_user
+Ref: tb_vendedor.id < tb_vendedor_grupo.id_vendedor
+Ref: tb_vendedor.id < tb_vendedor_metadata.id_vendedor
+Ref: tb_sys_user.id < tb_vendedor_user.id_user
+Ref: tb_vendedor.id < tb_vendedor_user.id_vendedor
+Ref: tb_sys_user.id < tb_vendedor_user.id_user_exclusao
+Ref: tb_cidade.id < tb_webscraper_bairros.id_cidade
+Ref: tb_bairro.id < tb_webscraper_bairros.id_bairro
+
+TableGroup "Analytics / Análise" [color: #10b981] {
+  tb_ad_history
+  tb_ad_metadata
+  tb_chamado
+  tb_chamado_anexos
+  tb_estatisticas_estoque
+  tb_estatisticas_historico
+  tb_estatisticas_indicador
+  tb_forca_atualizacao_elasticsearch
+  tb_imovel_area_comum_nao_encontrada
+  tb_imovel_area_privativa_nao_encontrada
+  tb_log_webservice
+  tb_processo_cron
+  tb_processo_cron_log
+  tb_sys_log
+  tb_sys_permission
+}
+TableGroup "Imóvel - Análises" [color: #3b82f6] {
+  tb_analise_imovel_conta
+  tb_analise_imovel_contato
+  tb_analise_imovel_leads
+  tb_analise_imovel_plano
+  tb_analise_imovel_qualidade
+  tb_analise_imovel_quantidade
+  tb_estatisticas_imovel_cliente
+  tb_estatisticas_imovel_diario
+  tb_estatisticas_imovel_diario2
+  tb_estatisticas_imovel_geral
+  tb_estatisticas_imovel_historico
+}
+TableGroup "Veículo - Análises" [color: #f97316] {
+  tb_analise_veiculo_conta
+  tb_analise_veiculo_contato
+  tb_analise_veiculo_leads
+  tb_analise_veiculo_plano
+  tb_analise_veiculo_qualidade
+  tb_analise_veiculo_quantidade
+  tb_estatisticas_veiculo
+  tb_estatisticas_veiculo_cliente
+  tb_estatisticas_veiculo_diario
+  tb_estatisticas_veiculo_geral
+}
+TableGroup "Cliente / Lead / CRM" [color: #8b5cf6] {
+  tb_autenticacao_log
+  tb_cliente
+  tb_cliente_buscas
+  tb_cliente_congelamento
+  tb_cliente_filial
+  tb_cliente_foto
+  tb_cliente_imobiliaria_ordem
+  tb_cliente_leads_na_mao_imovel
+  tb_cliente_publicidade
+  tb_cliente_reset_senha
+  tb_cliente_resumo_conteudo
+  tb_contato_pj
+  tb_contato_pj_historico
+  tb_contato_pj_tmp
+  tb_empresa
+  tb_favorito
+  tb_ligacao
+  tb_ligacao_observacao
+  tb_ligacao_imovel
+  tb_lead_corretor
+  tb_lead_corretor_cliente
+  tb_ligacao_configuracao
+  tb_ligacao_veiculo
+  tb_novo_lead
+  tb_vendedor_grupo
+  tb_vendedor_metadata
+  tb_vendedor_user
+}
+TableGroup "Localização" [color: #14b8a6] {
+  tb_cidade
+  tb_bairro
+  tb_bairro_info
+  tb_bairro_sugestao_lat_lng
+  tb_bairro_vizinho
+  tb_cidade_regiao_bairro
+  tb_cidade_nao_encontrada
+  tb_bairro_imovel
+  tb_bairro_nao_encontrado
+  tb_bairro_nao_encontrado_dados
+  tb_bairro_info_foto
+  tb_bairro_info_opiniao
+  tb_cidade_bonificada
+  tb_cidade_imovel
+  tb_cidade_regiao_metropolitana
+  tb_cidade_regiao_metropolitana_new
+  tb_cidade_regiao_sinonima
+  tb_cidade_sinonima
+  tb_cidade_zona_sinonima
+  tb_estatistica_uf
+  tb_feriado
+  tb_logradouro
+  tb_logradouro_imovel
+  tb_logradouro_nao_encontrado
+  tb_logradouro_sinonimo
+  tb_logradouro_unico
+  tb_logradouro_unico_cep
+  tb_regiao_imovel
+  tb_sinonimos_bairro
+  tb_robo_google_logradouro_model
+  tb_sinonimos_cidade
+  tb_uf
+  tb_uf_bonificada
+  tb_uf_imovel
+  tb_valida_cep_unico
+  tb_webscraper_bairros
+}
+TableGroup "Dependências" [color: #6b7280] {
+  tb_bairro_sinonimo
+  tb_chamado_tipo
+  tb_cidade_regiao
+  tb_cidade_revendedora
+  tb_cidade_zona
+  tb_cliente_congelado_motivo
+  tb_imovel_plano_assinatura_grupo
+  tb_imovel_plano_assinatura_regiao
+  tb_mailing_noticia_envio
+  tb_parceiro
+  tb_sys_user
+  tb_sys_profile
+  tb_telefone
+  tb_veiculo_plano_assinatura_regiao
+  tb_veiculo_plano_assinatura_grupo
+  tb_vendedor
+}
+TableGroup "Pagamento / Fiscal" [color: #ef4444] {
+  tb_banco
+  tb_boleto
+  tb_boleto_remessa_boleto
+  tb_boleto_remessa
+  tb_cartao
+  tb_conta_bancaria
+  tb_grupo_pagamento
+  tb_nfs
+  tb_pagamento
+}
+TableGroup "Email / Mailing" [color: #ec4899] {
+  tb_base_email_segmentado
+  tb_email_atendimento_cliente
+  tb_email_atendimento_tipo
+  tb_email_bloqueado
+  tb_email_erro_excecao
+  tb_email_fila
+  tb_email_log
+  tb_email_log_tratativa
+  tb_email_transacional_enviado_interesse
+  tb_email_validado
+  tb_mailing_html
+  tb_mailing_html_grupo
+  tb_mailing_html_arquivos
+  tb_mailing_html_envio
+  tb_mailing_contact
+  tb_mailing_contact_group
+  tb_mailing_group
+  tb_mailing_noticia
+  tb_mailing_noticia_grupo
+  tb_mailing_veiculo_propostas_modelo
+  tb_template_email_cliente
+}
+TableGroup "Financeiro / Contrato" [color: #6366f1] {
+  tb_financeiro_contrato
+  tb_base_highlights
+  tb_base_plan
+  tb_cancelamentos
+  tb_comissao_detalhamento
+  tb_comissao_fechada
+  tb_contrato_conversao
+  tb_gerencia_link_contrato
+  tb_financeiro_bonificacao
+  tb_financeiro_comissao_venda
+  tb_financeiro_contrato_aditivo
+  tb_financeiro_contrato_cliente
+  tb_financeiro_contrato_pre_cadastro
+  tb_financeiro_contrato_pre_cadastro_fila
+  tb_financeiro_desconto
+  tb_financeiro_desconto_acrescimo
+  tb_financeiro_mensalidade
+  tb_financeiro_mensalidade_historico
+  tb_financeiro_cartao_avulso
+  tb_financeiro_contrato_cancelado_motivo
+  tb_financeiro_contrato_historico
+  tb_financeiro_contrato_meses_rescisao
+  tb_financeiro_contrato_pre_cadastro_log
+  tb_financeiro_contrato_status
+  tb_financeiro_contrato_status_chamado_tipo
+  tb_financeiro_contrato_tipo
+  tb_financeiro_pagamento_comissao
+  tb_pre_cadastro_link
+  tb_pre_cadastro_alerta
+  tb_pre_cadastro_fila
+  tb_proposta_tipo
+  tb_regra_pre_cadastro
+  tb_representante_comissao_expansao
+  tb_representante_comissao_expansao_cliente
+  tb_vendedor_comissao
+  tb_vendedor_comissao_fechada
+  tb_vendedor_comissao_semana
+}
+TableGroup "Imóvel - Busca / SEO" [color: #3b82f6] {
+  tb_buscador_imovel_filtro
+  tb_buscador_imovel_filtro_palavra_chave
+  tb_buscador_imovel_filtro_sinonimo
+  tb_imovel_busca
+  tb_imovel_ordenacao
+  tb_imovel_resumo
+  tb_imovel_resumo_novo
+  tb_imovel_seo_tag
+  tb_imovel_seo_texto
+  tb_imovel_seo_texto_faq
+  tb_imovel_tipo_nao_encontrado
+  tb_sinonimos_tipo_imovel
+}
+TableGroup "Veículo - Busca / SEO" [color: #f97316] {
+  tb_buscador_veiculo_filtro
+  tb_buscador_veiculo_filtro_palavra_chave
+  tb_buscador_veiculo_filtro_sinonimo
+  tb_veiculo_busca
+  tb_veiculo_links
+  tb_veiculo_seo_tag
+  tb_veiculo_seo_texto
+}
+TableGroup "Imóvel - Plano" [color: #3b82f6] {
+  tb_configuracao_pre_cadastro_imovel
+  tb_imovel_plano_assinatura
+  tb_imovel_plano_assinatura_valor
+  tb_imovel_plano_assinatura_cliente
+  tb_imovel_plano_assinatura_cliente_imovel
+  tb_imovel_plano_assinatura_uf
+  tb_imovel_plano_assinatura_regiao_cidade
+}
+TableGroup "Veículo - Plano" [color: #f97316] {
+  tb_configuracao_pre_cadastro_veiculo
+  tb_veiculo_plano_assinatura_cliente
+  tb_veiculo_plano_assinatura_valor
+  tb_veiculo_plano_assinatura
+  tb_veiculo_plano_assinatura_cliente_veiculo
+  tb_veiculo_plano_assinatura_uf
+  tb_veiculo_plano_assinatura_regiao_cidade
+}
+TableGroup "Veículo - Revendedoras / FIPE" [color: #f97316] {
+  tb_contato_tabela_fipe
+  tb_revendedora
+  tb_revendedora_telefone
+  tb_revendedores_icarros
+  tb_revendedores_webmotors
+  tb_tabela_fipe
+  tb_tabela_fipe_valor_mes
+  tb_tabela_fipe_modelo
+  tb_tabela_fipe_valor
+  tb_webmotors
+}
+TableGroup "Imóvel - Ciclo de Vida" [color: #3b82f6] {
+  tb_email_tentativa_bloqueado_log
+  tb_imovel_agendar_visita
+  tb_imovel_busca_order_rand
+  tb_imovel_consolidado
+  tb_imovel_nao_importado
+  tb_imovel_oportunidade
+  tb_imovel_proposta
+  tb_imovel_proposta_importacao
+  tb_imovel_proposta_simulacao_financiamento
+  tb_imovel_solicitacao_telefone
+  tb_imovel_tipo_nao_encontrado_imovel
+}
+TableGroup "Imóvel - Alertas" [color: #3b82f6] {
+  tb_form_sem_resultados_imovel
+  tb_form_sem_resultados_imovel_cliente
+  tb_imovel_alerta
+  tb_imovel_alerta_imovel
+}
+TableGroup "Veículo - Alertas" [color: #f97316] {
+  tb_form_sem_resultados_veiculo_cliente
+  tb_form_sem_resultados_veiculos
+  tb_veiculo_alerta
+  tb_veiculo_alerta_veiculo
+}
+TableGroup "SEO / Portal / Conteüdo" [color: #84cc16] {
+  tb_galeria_combo
+  tb_galeria_url
+  tb_imagem
+  tb_link
+  tb_palavra
+  tb_palavra_relacionamento
+  tb_sitemap_arquivo
+  tb_sitemap_url
+  tb_tabela_fipe_troca_url_ignorada
+  tb_texto_imoveis
+  tb_texto_veiculos
+  tb_urls_busca_itens
+}
+TableGroup "Imóvel - Core" [color: #3b82f6] {
+  tb_imovel
+  tb_imovel_alteracao
+  tb_imovel_ativo_historico
+  tb_imovel_foto
+  tb_imovel_historico
+  tb_imovel_ordem
+  tb_imovel_excluido
+  tb_imovel_dominios_tour
+  tb_imovel_integracao
+  tb_imovel_resumo_conveniencia
+  tb_imovel_video
+  tb_imovel_tipo
+  tb_imovel_texto_lancamentos
+}
+TableGroup "Imóvel - Áreas" [color: #3b82f6] {
+  tb_imovel_area_grupo
+  tb_imovel_area_macro_grupo
+  tb_imovel_area_grupo_imovel_tipo
+  tb_imovel_area_grupo_imovel_tipo_relacionado
+  tb_imovel_area_grupo_item
+  tb_imovel_area_comum
+  tb_imovel_area_privativa
+  tb_imovel_area_comum_imovel
+  tb_imovel_area_grupo_resumo
+  tb_imovel_area_comum_sinonima
+  tb_imovel_area_comum_tipo_imovel
+  tb_imovel_area_privativa_imovel
+  tb_imovel_area_privativa_sinonima
+  tb_imovel_area_privativa_tipo_imovel
+}
+TableGroup "Imóvel - Características" [color: #3b82f6] {
+  tb_imovel_caracteristica
+  tb_imovel_caracteristica_opcao
+  tb_imovel_caracteristica_opcao_imovel
+  tb_imovel_caracteristica_tipo_imovel
+  tb_imovel_caracteristica_importante
+  tb_imovel_caracteristica_importante_opcao
+  tb_imovel_caracteristica_importante_opcao_imovel
+  tb_imovel_caracteristica_importante_tipo_imovel
+  tb_imovel_condicao_locacao
+  tb_imovel_condicao_locacao_imovel
+  tb_imovel_forma_pagamento
+  tb_imovel_forma_pagamento_imovel
+  tb_imovel_periodo_locacao
+}
+TableGroup "Imóvel - Mailing" [color: #3b82f6] {
+  tb_imovel_mailing_bairro
+  tb_imovel_mailing_cidade
+  tb_imovel_mailing_historico
+  tb_imovel_mailing_historico_imovel
+  tb_imovel_mailing_imovel
+  tb_imovel_mailing
+  tb_imovel_mailing_enviado
+  tb_imovel_mailing_lista_email
+  tb_mailing_imovel
+  tb_mailing_imovel_grupo
+  tb_mailing_imovel_anuncio
+  tb_mailing_imovel_envio
+}
+TableGroup "Integração" [color: #6b7280] {
+  tb_importacao
+  tb_importacao_linhas
+  tb_integracao
+  tb_integracao_log
+  tb_integracao_log_dados
+  tb_integracao_padrao
+  tb_importacao_upload
+  tb_integracao_fila
+  tb_integracao_fila_manual
+  tb_integracao_leads
+  tb_integracao_leads_fila
+  tb_integracao_leads_parametros
+  tb_integracao_parceiro_padrao
+}
+TableGroup "Veículo - Importação" [color: #f97316] {
+  tb_importacao_revendedora_log
+  tb_veiculo_importacao
+  tb_veiculo_importacao_fila
+  tb_veiculo_importacao_log
+  tb_veiculo_importacao_log_dados
+  tb_veiculo_importacao_opcionais_nao_encontrados
+  tb_veiculo_plano_assinatura_cliente_veiculo_tmp
+}
+TableGroup "Veículo - Mailing" [color: #f97316] {
+  tb_mailing_veiculo
+  tb_mailing_veiculo_anuncio
+  tb_mailing_veiculo_envio
+  tb_mailing_veiculo_grupo
+  tb_veiculo_mailing_veiculo
+  tb_veiculo_mailing_cidade
+  tb_veiculo_mailing_historico
+  tb_veiculo_mailing_historico_veiculo
+  tb_veiculo_mailing_modelo
+  tb_veiculo_mailing
+  tb_veiculo_mailing_enviado
+  tb_veiculo_mailing_lista_email
+}
+TableGroup "Operacional" [color: #6b7280] {
+  tb_operacional_cliente
+  tb_operacional_usuario
+  tb_operacional_cliente_log
+  tb_operacional_fotos_log
+  tb_operacional_usuario_rota_diaria
+  tb_operacional_usuario_rota_especial
+  tb_operacional_videos_log
+}
+TableGroup "Veículo - Catálogo" [color: #f97316] {
+  tb_sinonimos_modelo_veiculo
+  tb_sinonimos_versao_veiculo
+  tb_sinonimos_cor
+  tb_sinonimos_opcional_veiculo
+  tb_veiculo_marca_modelo
+  tb_veiculo_marca
+  tb_veiculo_marca_modelo_nao_encontrado
+  tb_veiculo_carroceria_modelo
+  tb_veiculo_carroceria
+  tb_veiculo_categoria
+  tb_veiculo_carroceria_versao
+  tb_veiculo_marca_modelo_info
+  tb_veiculo_marca_modelo_info_foto
+  tb_veiculo_marca_modelo_info_opiniao
+  tb_veiculo_combustivel
+  tb_veiculo_combustivel_sinonimo
+  tb_veiculo_combustivel_subfiltro
+  tb_veiculo_combustivel_tipo_veiculo
+  tb_veiculo_cor
+  tb_veiculo_cor_sinonimo
+  tb_veiculo_marca_modelo_versao_nao_encontrada
+  tb_veiculo_marca_sinonimo
+  tb_veiculo_marca_modelo_sinonimo
+  tb_veiculo_marca_modelo_versao
+  tb_veiculo_marca_modelo_versao_sinonimo
+  tb_veiculo_marca_nao_encontrada
+  tb_veiculo_necessidade
+  tb_veiculo_necessidade_veiculo
+  tb_veiculo_opcional
+  tb_veiculo_opcional_sinonimo
+  tb_veiculo_opcional_tipo_veiculo
+  tb_veiculo_opcional_veiculo
+  tb_veiculo_outra_informacao
+  tb_veiculo_outra_informacao_sinonimo
+  tb_veiculo_outra_informacao_tipo_veiculo
+  tb_veiculo_outra_informacao_veiculo
+  tb_veiculo_tipo_cambio
+  tb_veiculo_tipo_cambio_sinonimo
+  tb_veiculo_tipo_cambio_tipo_veiculo
+}
+TableGroup "Veículo - Core" [color: #f97316] {
+  tb_veiculo
+  tb_veiculo_foto
+  tb_veiculo_historico
+  tb_veiculo_excluido
+  tb_veiculo_oportunidade
+  tb_veiculo_video
+  tb_veiculo_revisao
+  tb_veiculo_seo_texto_faq
+}
+TableGroup "Veículo - Ciclo de Vida" [color: #f97316] {
+  tb_veiculo_classificacao
+  tb_veiculo_classificacao_veiculo
+  tb_veiculo_ordenacao
+  tb_veiculo_proposta
+  tb_veiculo_solicitacao_telefone
 }

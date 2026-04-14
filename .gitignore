@@ -1,4 +1,24 @@
-/docs
+# Documentação e arquivos gerados
+docs/
+dist/
+
+# Arquivos de banco de dados e saves
 *.db
-context.md
+
+# Dependências
 node_modules/
+
+# Arquivos temporários e de sistema
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Arquivos de configuração e documentação locais
+context.md
+docs.md
+
+# Outros arquivos que não devem ser versionados
+package-lock.json

@@ -109,4 +109,5 @@ export type Workspace = {
   hiddenTables: string[]
   hasDocs?: boolean
   docs?: DocsMap                          // embedded docs (used in .svx export)
+  groupColorOverrides?: Record<string, string>  // groupName → hex color
 }

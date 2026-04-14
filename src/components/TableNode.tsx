@@ -26,8 +26,10 @@ function TableNode({ data }: NodeProps) {
       className="rounded-lg shadow-lg overflow-hidden min-w-[200px] transition-all duration-150"
       style={{ opacity, background: 'var(--node-bg)', border: `1px solid ${borderColor}`, boxShadow }}
     >
-      <Handle type="target" position={Position.Left} className="!bg-slate-400 !w-2 !h-2" />
-      <Handle type="source" position={Position.Right} className="!bg-slate-400 !w-2 !h-2" />
+      <Handle id="left-target"  type="target" position={Position.Left}  className="!bg-slate-400 !w-2 !h-2" />
+      <Handle id="left-source"  type="source" position={Position.Left}  className="!bg-slate-400 !w-2 !h-2" />
+      <Handle id="right-target" type="target" position={Position.Right} className="!bg-slate-400 !w-2 !h-2" />
+      <Handle id="right-source" type="source" position={Position.Right} className="!bg-slate-400 !w-2 !h-2" />
 
       {/* Header */}
       <div
@@ -50,7 +52,7 @@ function TableNode({ data }: NodeProps) {
               }`}
             >
               {col.pk ? (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" title="Primary Key" className="text-yellow-400 shrink-0"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M14 13.5l-3.5-3.5"/><path d="M11.5 11l1.5 1.5"/></svg>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-label="Primary Key" className="text-yellow-400 shrink-0"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M14 13.5l-3.5-3.5"/><path d="M11.5 11l1.5 1.5"/></svg>
               ) : (
                 <span className="w-4 shrink-0" />
               )}

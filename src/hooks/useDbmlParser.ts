@@ -27,6 +27,14 @@ export function useDbmlParser() {
 
   const parse = useCallback((dbmlString: string): ParsedSchema | null => {
     try {
+      // Extract [color: #hex] from TableGroup declarations before stripping them
+      const groupColorFromDbml: Record<string, string> = {}
+      const colorRe = /TableGroup\s+"([^"]*)"\s*\[(?:[^\]]*?\s)?color:\s*(#[0-9a-fA-F]{3,8})/g
+      let cm: RegExpExecArray | null
+      while ((cm = colorRe.exec(dbmlString)) !== null) {
+        groupColorFromDbml[cm[1]] = cm[2]
+      }
+
       // Strip unsupported [color: ...] annotations from TableGroup lines
       // e.g. TableGroup "Name" [color: #xxx] { → TableGroup "Name" {
       const sanitized = dbmlString.replace(
@@ -38,8 +46,8 @@ export function useDbmlParser() {
 
       const groupColors: Record<string, string> = {}
       s.tableGroups?.forEach((g: any, i: number) => {
-        // @dbml/core doesn't expose a color API; assign from palette by index
-        groupColors[g.name] = groupColor(g.name, i)
+        // Use color from DBML annotation if present, otherwise fall back to palette index
+        groupColors[g.name] = groupColorFromDbml[g.name] ?? groupColor(g.name, i)
       })
 
       const tables: ParsedTable[] = s.tables.map((table: any) => {

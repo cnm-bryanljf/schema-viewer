@@ -57,6 +57,24 @@ export function parseDocFile(filename: string, content: string): TableDoc {
   return { tableName, overview, group, columns, raw: content }
 }
 
+/**
+ * Detect if a file contains multiple tables (each starting with "# table_name").
+ * Returns an array of TableDoc, one per table found.
+ */
+export function parseMultiDocFile(content: string): TableDoc[] {
+  const results: TableDoc[] = []
+  // Split on lines that start with "# " followed by a word (table name)
+  const parts = content.split(/(?=^# [a-zA-Z_]\w*\s*$)/m)
+  for (const part of parts) {
+    const h1 = part.match(/^# ([a-zA-Z_]\w*)\s*$/m)
+    if (!h1) continue
+    const tableName = h1[1].trim()
+    const doc = parseDocFile(tableName + '.md', part.replace(/^# [a-zA-Z_]\w*\s*\n/, ''))
+    results.push({ ...doc, tableName })
+  }
+  return results
+}
+
 export function verifyDocs(docs: DocsMap, tableNames: string[]): { missing: string[]; extra: string[] } {
   const docNames = new Set(Object.keys(docs))
   const schemaNames = new Set(tableNames)

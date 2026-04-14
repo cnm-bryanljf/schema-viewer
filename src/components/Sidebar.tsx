@@ -43,6 +43,10 @@ type SidebarProps = {
   onFocusGroup: (name: string) => void
   onToggleGroupVisibility: (name: string) => void
   hiddenGroups: Set<string>
+  onChangeGroupColor: (name: string, color: string) => void
+  onRenameGroup: (oldName: string, newName: string) => void
+  onDeleteGroup: (name: string) => void
+  onGroupColorChangeStart?: () => void
 
   // Search + Tables
   search: string
@@ -71,9 +75,14 @@ type SidebarProps = {
   // Fullscreen
   isFullscreen: boolean
   onToggleFullscreen: () => void
+
+  // Box select
+  boxSelectMode: boolean
+  onToggleBoxSelect: () => void
 }
 
 const STORAGE_KEY = 'schema-viewer-sidebar-sections'
+const MACRO_COLLAPSED_KEY = 'schema-viewer-macro-groups'
 
 function loadCollapsed(): Set<string> {
   try {
@@ -85,6 +94,54 @@ function loadCollapsed(): Set<string> {
 
 function saveCollapsed(set: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]))
+}
+
+function loadMacroCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(MACRO_COLLAPSED_KEY)
+    if (raw) return new Set(JSON.parse(raw))
+  } catch {}
+  return new Set()
+}
+
+function saveMacroCollapsed(set: Set<string>) {
+  localStorage.setItem(MACRO_COLLAPSED_KEY, JSON.stringify([...set]))
+}
+
+// ── Macro-group helpers ───────────────────────────────────────────────────────
+
+type MacroGroup = { name: string; color: string; groups: Group[] }
+
+/** Derive a label from a set of group names sharing the same color.
+ *  If they all share a common "Prefix - …" pattern, the prefix becomes the label.
+ *  Otherwise the first group name is used. */
+function deriveMacroName(names: string[]): string {
+  if (names.length === 1) return names[0]
+  const prefixes = names.map(n => (n.includes(' - ') ? n.split(' - ')[0].trim() : n))
+  const unique = [...new Set(prefixes)]
+  if (unique.length === 1) return unique[0]
+  // Multiple prefixes — use the most common one
+  const freq: Record<string, number> = {}
+  prefixes.forEach(p => { freq[p] = (freq[p] ?? 0) + 1 })
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]
+}
+
+function computeMacroGroups(groups: Group[]): MacroGroup[] {
+  const byColor = new Map<string, Group[]>()
+  groups.forEach(g => {
+    const list = byColor.get(g.color) ?? []
+    list.push(g)
+    byColor.set(g.color, list)
+  })
+  const macros: MacroGroup[] = []
+  byColor.forEach((grps, color) => {
+    macros.push({ name: deriveMacroName(grps.map(g => g.name)), color, groups: grps })
+  })
+  // Sort: multi-group macros first (by count desc), then singles alphabetically
+  return macros.sort((a, b) => {
+    if (a.groups.length !== b.groups.length) return b.groups.length - a.groups.length
+    return a.name.localeCompare(b.name)
+  })
 }
 
 function TriangleDown({ className }: { className?: string }) {
@@ -148,22 +205,26 @@ function EyeClosed() {
 }
 
 function Section({
-  id, title, children, collapsed, onToggle,
+  id, title, children, collapsed, onToggle, action,
 }: {
   id: string; title: string; children: React.ReactNode; collapsed: boolean; onToggle: (id: string) => void
+  action?: React.ReactNode
 }) {
   return (
     <div className="border-b border-gray-200 dark:border-slate-700/60">
-      <button
-        onClick={() => onToggle(id)}
-        className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
-      >
-        <span>{title}</span>
-        {collapsed
-          ? <TriangleRight className="text-gray-300 dark:text-slate-600" />
-          : <TriangleDown className="text-gray-400 dark:text-slate-500" />
-        }
-      </button>
+      <div className="flex items-center px-3 py-1.5">
+        <button
+          onClick={() => onToggle(id)}
+          className="flex-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors text-left"
+        >
+          <span>{title}</span>
+          {collapsed
+            ? <TriangleRight className="text-gray-300 dark:text-slate-600" />
+            : <TriangleDown className="text-gray-400 dark:text-slate-500" />
+          }
+        </button>
+        {action}
+      </div>
       {!collapsed && <div className="pb-2">{children}</div>}
     </div>
   )
@@ -195,12 +256,14 @@ export default function Sidebar(props: SidebarProps) {
     onReset, onGroupLayout, onSnowflakeLayout,
     onUndo, onRedo, canUndo, canRedo,
     groups, activeGroups, onToggleGroup, onFocusGroup, onToggleGroupVisibility, hiddenGroups,
+    onChangeGroupColor, onRenameGroup, onDeleteGroup, onGroupColorChangeStart,
     search, onSearch,
     tables, onToggleTableVisibility, onFocusTable,
     docs, onImportDocs,
     workspaces, onSaveWorkspace, onLoadWorkspace, onDeleteWorkspace, onExportWorkspace, onExportCurrentAsSvx, onImportWorkspace,
     darkMode, onToggleDarkMode,
     isFullscreen, onToggleFullscreen,
+    boxSelectMode, onToggleBoxSelect,
   } = props
 
   const { fitView, zoomIn, zoomOut } = useReactFlow()
@@ -213,10 +276,17 @@ export default function Sidebar(props: SidebarProps) {
   const [wsOverwritePending, setWsOverwritePending] = useState<{ id: string; name: string } | null>(null)
   // Delete confirmation modal
   const [wsDeletePending, setWsDeletePending] = useState<{ id: string; name: string } | null>(null)
+  // Group management state
+  const [groupDeletePending, setGroupDeletePending] = useState<string | null>(null)
+  const [renamingGroup, setRenamingGroup] = useState<string | null>(null)
+  const [groupRenameInput, setGroupRenameInput] = useState('')
   const importWsRef = useRef<HTMLInputElement>(null)
   const importDocsRef = useRef<HTMLInputElement>(null)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed)
+  const [collapsedMacros, setCollapsedMacros] = useState<Set<string>>(loadMacroCollapsed)
   const hasDocs = Object.keys(docs).length > 0
+
+  const macroGroups = computeMacroGroups(groups)
 
   const isSectionCollapsed = (id: string) => collapsedSections.has(id)
   const toggleSection = (id: string) => {
@@ -225,6 +295,35 @@ export default function Sidebar(props: SidebarProps) {
       if (next.has(id)) next.delete(id); else next.add(id)
       saveCollapsed(next)
       return next
+    })
+  }
+
+  const toggleMacro = (name: string) => {
+    setCollapsedMacros(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      saveMacroCollapsed(next)
+      return next
+    })
+  }
+
+  const isMacroHidden = (macro: MacroGroup) => macro.groups.every(g => hiddenGroups.has(g.name))
+  const isMacroPartial = (macro: MacroGroup) => !isMacroHidden(macro) && macro.groups.some(g => hiddenGroups.has(g.name))
+
+  const toggleMacroVisibility = (macro: MacroGroup) => {
+    const allHidden = isMacroHidden(macro)
+    macro.groups.forEach(g => {
+      const isHidden = hiddenGroups.has(g.name)
+      if (allHidden ? isHidden : !isHidden) onToggleGroupVisibility(g.name)
+    })
+  }
+
+  const allGroupsHidden = groups.length > 0 && groups.every(g => hiddenGroups.has(g.name))
+  const toggleAllGroupsVisibility = () => {
+    const shouldHide = !allGroupsHidden
+    groups.forEach(g => {
+      const isHidden = hiddenGroups.has(g.name)
+      if (shouldHide ? !isHidden : isHidden) onToggleGroupVisibility(g.name)
     })
   }
 
@@ -413,12 +512,12 @@ export default function Sidebar(props: SidebarProps) {
             ) : (
               <div className="px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-lg">
                 <p className="text-xs text-amber-700 dark:text-amber-300">Nenhuma documentação carregada.</p>
-                <p className="text-xs text-amber-500 mt-0.5">Faça upload de arquivos .md abaixo.</p>
+                <p className="text-xs text-amber-500 mt-0.5">Faça upload do arquivo .md abaixo.</p>
               </div>
             )}
             <button onClick={() => importDocsRef.current?.click()} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs rounded-lg border border-dashed border-gray-300 dark:border-slate-600 transition-colors">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M3 12h10"/></svg>
-              Importar arquivos .md
+              Importar arquivo .md
             </button>
             <button onClick={handleDownloadTemplate} className="w-full flex items-center gap-2 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-400 text-xs rounded-lg transition-colors">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v8m0 0l-3-3m3 3l3-3"/><path d="M3 13h10"/></svg>
@@ -522,6 +621,18 @@ export default function Sidebar(props: SidebarProps) {
               <span className="text-base leading-none">↻</span> Refazer
             </button>
           </div>
+          <div className="px-2 mt-1">
+            <button
+              onClick={onToggleBoxSelect}
+              title="Selecionar múltiplas tabelas arrastando uma área"
+              className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-xs rounded transition-colors ${boxSelectMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'}`}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3 2">
+                <rect x="1" y="1" width="14" height="14" rx="1"/>
+              </svg>
+              Selecionar área
+            </button>
+          </div>
         </Section>
 
         {/* Layout */}
@@ -558,26 +669,125 @@ export default function Sidebar(props: SidebarProps) {
 
         {/* Grupos */}
         {groups.length > 0 && (
-          <Section id="grupos" title="Grupos" collapsed={isSectionCollapsed('grupos')} onToggle={toggleSection}>
+          <Section
+            id="grupos"
+            title="Grupos"
+            collapsed={isSectionCollapsed('grupos')}
+            onToggle={toggleSection}
+            action={
+              <button
+                onClick={toggleAllGroupsVisibility}
+                title={allGroupsHidden ? 'Mostrar todos os grupos' : 'Ocultar todos os grupos'}
+                className="px-1.5 py-1 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+              >
+                {allGroupsHidden ? <EyeClosed /> : <EyeOpen />}
+              </button>
+            }
+          >
             <div className="px-2 space-y-1">
-              {groups.map(g => {
-                const isHidden = hiddenGroups.has(g.name)
-                const isActive = activeGroups.has(g.name)
+              {macroGroups.map(macro => {
+                const macroCollapsed = collapsedMacros.has(macro.name)
+                const macroHidden = isMacroHidden(macro)
+                const macroPartial = isMacroPartial(macro)
+                const isMulti = macro.groups.length > 1
+
+                // ── Helper: renders one individual group row ──────────────────
+                const renderGroupRow = (g: Group) => {
+                  const isHidden = hiddenGroups.has(g.name)
+                  const isActive = activeGroups.has(g.name)
+                  const isRenaming = renamingGroup === g.name
+                  return (
+                    <div key={g.name} className="flex items-center gap-1 rounded-lg border overflow-visible transition-colors group/grp"
+                      style={{ borderColor: g.color + '55', background: isActive ? g.color + '15' : 'transparent' }}>
+                      <label className="shrink-0 px-1.5 py-1.5 flex items-center cursor-pointer" title="Alterar cor" onMouseDown={() => onGroupColorChangeStart?.()}>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: g.color, opacity: isHidden ? 0.3 : 1 }} />
+                        <input type="color" value={g.color} onChange={e => onChangeGroupColor(g.name, e.target.value)} className="opacity-0 absolute w-0 h-0 pointer-events-none" />
+                      </label>
+                      {isRenaming ? (
+                        <input autoFocus value={groupRenameInput} onChange={e => setGroupRenameInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { onRenameGroup(g.name, groupRenameInput.trim() || g.name); setRenamingGroup(null) }
+                            if (e.key === 'Escape') setRenamingGroup(null)
+                          }}
+                          className="flex-1 min-w-0 text-xs bg-transparent border-b border-blue-500 focus:outline-none py-0.5"
+                          style={{ color: g.color }}
+                        />
+                      ) : (
+                        <button onClick={() => onFocusGroup(g.name)}
+                          className="flex-1 flex items-center gap-1.5 px-1 py-1.5 text-xs text-left transition-colors truncate"
+                          style={{ color: isActive ? g.color : isHidden ? '#94a3b8' : '#64748b' }}
+                          title="Focar grupo no canvas">
+                          <span className={isHidden ? 'line-through opacity-40 truncate' : 'truncate'}>{g.name}</span>
+                        </button>
+                      )}
+                      {!isRenaming && (
+                        <>
+                          <button onClick={() => { setRenamingGroup(g.name); setGroupRenameInput(g.name) }}
+                            className="opacity-0 group-hover/grp:opacity-100 transition-opacity px-1 py-1 text-gray-400 dark:text-slate-600 hover:text-blue-400 shrink-0" title="Renomear grupo">
+                            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z"/></svg>
+                          </button>
+                          <button onClick={() => setGroupDeletePending(g.name)}
+                            className="opacity-0 group-hover/grp:opacity-100 transition-opacity px-1 py-1 text-gray-400 dark:text-slate-600 hover:text-red-400 shrink-0" title="Excluir grupo">
+                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+                          </button>
+                        </>
+                      )}
+                      {isRenaming && (
+                        <>
+                          <button onClick={() => { onRenameGroup(g.name, groupRenameInput.trim() || g.name); setRenamingGroup(null) }} className="px-1 py-1 text-green-500 hover:text-green-400 shrink-0 text-xs">✓</button>
+                          <button onClick={() => setRenamingGroup(null)} className="px-1 py-1 text-gray-400 hover:text-gray-600 shrink-0 text-xs">✕</button>
+                        </>
+                      )}
+                      <button onClick={() => onToggleGroupVisibility(g.name)} className="px-1.5 py-1.5 flex items-center justify-center transition-colors shrink-0" title={isHidden ? 'Mostrar grupo' : 'Ocultar grupo'}>
+                        {isHidden ? <EyeClosed /> : <EyeOpen />}
+                      </button>
+                    </div>
+                  )
+                }
+
+                // ── Single-group macro: render the group row directly ─────────
+                if (!isMulti) return renderGroupRow(macro.groups[0])
+
+                // ── Multi-group macro ─────────────────────────────────────────
                 return (
-                  <div key={g.name} className="flex items-center gap-1 rounded-lg border overflow-hidden transition-colors"
-                    style={{ borderColor: g.color + '55', background: isActive ? g.color + '15' : 'transparent' }}>
-                    <button
-                      onClick={() => onFocusGroup(g.name)}
-                      className="flex-1 flex items-center gap-2 px-2 py-1.5 text-xs text-left transition-colors"
-                      style={{ color: isActive ? g.color : isHidden ? '#94a3b8' : '#64748b' }}
-                      title="Focar grupo no canvas"
-                    >
-                      <span className="w-2 h-2 rounded-full shrink-0 transition-opacity" style={{ background: g.color, opacity: isHidden ? 0.3 : 1 }} />
-                      <span className={isHidden ? 'line-through opacity-40' : ''}>{g.name}</span>
-                    </button>
-                    <button onClick={() => onToggleGroupVisibility(g.name)} className="px-2 py-1.5 flex items-center justify-center transition-colors shrink-0" title={isHidden ? 'Mostrar grupo' : 'Ocultar grupo'}>
-                      {isHidden ? <EyeClosed /> : <EyeOpen />}
-                    </button>
+                  <div key={macro.name}>
+                    {/* Macro header */}
+                    <div className="flex items-center gap-0.5 rounded-lg group/macro cursor-pointer"
+                      style={{ background: macroHidden ? 'transparent' : macro.color + '14' }}>
+                      <button onClick={() => toggleMacro(macro.name)}
+                        className="shrink-0 pl-1.5 pr-0.5 py-1.5 flex items-center"
+                        title={macroCollapsed ? 'Expandir' : 'Recolher'}>
+                        {macroCollapsed
+                          ? <TriangleRight className="text-gray-400 dark:text-slate-500" />
+                          : <TriangleDown className="text-gray-400 dark:text-slate-500" />}
+                      </button>
+                      <button onClick={() => toggleMacro(macro.name)}
+                        className="flex-1 text-left text-xs font-semibold px-1 py-1.5 truncate transition-colors"
+                        style={{ color: macroHidden ? '#94a3b8' : macro.color }}>
+                        <span className={macroHidden ? 'opacity-40' : ''}>
+                          {macro.name}
+                          <span className="ml-1 font-normal text-[10px] opacity-50">({macro.groups.length})</span>
+                        </span>
+                      </button>
+                      {/* Macro eye: hides/shows all sub-groups at once */}
+                      <button onClick={() => toggleMacroVisibility(macro)}
+                        className="px-1.5 py-1.5 flex items-center justify-center transition-colors shrink-0"
+                        title={macroHidden ? 'Mostrar todos' : 'Ocultar todos'}>
+                        {macroHidden ? <EyeClosed /> : macroPartial
+                          ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 opacity-60 dark:text-slate-400">
+                              <path d="M2 8c1.5-3 9.5-3 12 0" />
+                              <circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none" />
+                            </svg>
+                          : <EyeOpen />}
+                      </button>
+                    </div>
+                    {/* Children */}
+                    {!macroCollapsed && (
+                      <div className="ml-3.5 mt-0.5 space-y-0.5 border-l-2 pl-1.5"
+                        style={{ borderColor: macro.color + '40' }}>
+                        {macro.groups.map(g => renderGroupRow(g))}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -741,6 +951,28 @@ export default function Sidebar(props: SidebarProps) {
         e.target.value = ''
       }}
     />
+
+    {groupDeletePending && createPortal(
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setGroupDeletePending(null)}>
+        <div className={`w-80 rounded-xl shadow-2xl border overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
+          <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0"><polyline points="3,5 4,14 12,14 13,5"/><path d="M1 5h14"/><path d="M6 5V3h4v2"/></svg>
+            <span className={`text-sm font-semibold ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>Excluir grupo</span>
+          </div>
+          <div className="px-4 py-3">
+            <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+              Tem certeza que deseja excluir o grupo <span className={`font-semibold ${darkMode ? 'text-slate-200' : 'text-gray-800'}`}>"{groupDeletePending}"</span>?
+              As tabelas do grupo não serão excluídas, apenas desassociadas.
+            </p>
+          </div>
+          <div className={`flex justify-end gap-2 px-4 py-2.5 border-t ${darkMode ? 'border-slate-700' : 'border-gray-100'}`}>
+            <button onClick={() => setGroupDeletePending(null)} className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>Cancelar</button>
+            <button onClick={() => { onDeleteGroup(groupDeletePending); setGroupDeletePending(null) }} className="px-4 py-1.5 text-xs font-medium rounded-lg transition-colors bg-red-600 hover:bg-red-500 text-white">Excluir</button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
     </>
   )
 }

@@ -7,10 +7,12 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  reconnectEdge,
   useReactFlow,
   ReactFlowProvider,
   type Node,
   type Edge,
+  type Connection,
 } from '@xyflow/react'
 import { toPng } from 'html-to-image'
 import '@xyflow/react/dist/style.css'
@@ -22,13 +24,15 @@ import SidePanel from './components/SidePanel'
 import Sidebar from './components/Sidebar'
 import LandingScreen from './components/LandingScreen'
 import DbmlEditorModal from './components/DbmlEditorModal'
+import CanvasToolbar from './components/CanvasToolbar'
 import { useDbmlParser } from './hooks/useDbmlParser'
 import { computeLayout } from './hooks/useLayout'
 import { computeGroupLayout, computeSnowflakeLayout, type LayoutResult } from './hooks/useAutoLayout'
 import { usePositions } from './hooks/usePositions'
-import { verifyDocs, parseDocFile } from './hooks/useDocParser'
+import { verifyDocs, parseDocFile, parseMultiDocFile } from './hooks/useDocParser'
 import { useWorkspace } from './hooks/useWorkspace'
-import type { ParsedTable, ParsedRef, SchemaEntry, TableVisibilityRow, GroupNodeData, DocsMap, TableDoc, Workspace } from './types'
+import { schemaToDbml, addRelation, removeRelation, replaceRelation, addTable, removeTable, mutateTable, renameGroup, deleteGroup, setTableGroup } from './hooks/useDbmlMutator'
+import type { ParsedTable, ParsedRef, ParsedColumn, SchemaEntry, TableVisibilityRow, GroupNodeData, DocsMap, TableDoc, Workspace } from './types'
 
 const nodeTypes = { tableNode: TableNode, groupNode: GroupNode }
 const edgeTypes = { animatedDashed: AnimatedDashedEdge }
@@ -104,16 +108,34 @@ function AppInner() {
   // Fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false)
 
+  // Box select
+  const [boxSelectMode, setBoxSelectMode] = useState(false)
+  const toggleBoxSelect = useCallback(() => setBoxSelectMode(v => !v), [])
+
   // Docs state
   const [docs, setDocs] = useState<DocsMap>({})
   const [docOverrides, setDocOverrides] = useState<Record<string, Partial<TableDoc>>>({})
+
+  // Group color overrides (separate from palette-based colors, persisted in workspace)
+  const [groupColorOverrides, setGroupColorOverrides] = useState<Record<string, string>>({})
+  // Groups created in the UI but not yet assigned any table
+  const [pendingGroups, setPendingGroups] = useState<string[]>([])
 
   // Workspace state
   const [workspaceList, setWorkspaceList] = useState<{ id: string; name: string; saved_at: string }[]>([])
   const wsHook = useWorkspace()
 
   const filePickerRef = useRef<HTMLInputElement>(null)
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const nodesRef = useRef<Node[]>([])
   const { fitView } = useReactFlow()
+
+  // ── Relation drawing mode ──────────────────────────────────────────────────
+  const [relationMode, setRelationMode] = useState(false)
+  const [drawingFrom, setDrawingFrom] = useState<string | null>(null)
+  const [relationType, setRelationType] = useState<ParsedRef['relation']>('1-N')
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+  const [pendingRelation, setPendingRelation] = useState<{ fromTable: string; toTable: string } | null>(null)
   const positionsHook = usePositions(schemaId)
   const pendingSave = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -145,50 +167,118 @@ function AppInner() {
   }, [])
 
   // ── Undo / Redo ────────────────────────────────────────────────────────────
-  type NodeSnapshot = { id: string; position: { x: number; y: number }; style?: React.CSSProperties }[]
-  const undoStack = useRef<NodeSnapshot[]>([])
-  const redoStack = useRef<NodeSnapshot[]>([])
+  // buildGraphRef declared here early so undo/redo restore can call it before buildGraph is defined in flow
+  const buildGraphRef = useRef<typeof buildGraph | null>(null)
+
+  type AppSnapshot = {
+    dbml: string | null
+    schemaId: string | null
+    nodePositions: { id: string; position: { x: number; y: number }; style?: React.CSSProperties }[]
+    groupColorOverrides: Record<string, string>
+  }
+  const undoStack = useRef<AppSnapshot[]>([])
+  const redoStack = useRef<AppSnapshot[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
 
-  const snapshotNodes = useCallback((nds: Node[]): NodeSnapshot =>
+  // Live refs so snapshot callbacks always see the latest values without stale closures
+  const currentContentRef = useRef<string | null>(null)
+  const schemaIdRef = useRef<string | null>(null)
+  const groupColorOverridesRef = useRef<Record<string, string>>({})
+  const paneMouseDownRef = useRef<{ x: number; y: number } | null>(null)
+  currentContentRef.current = currentContent
+  schemaIdRef.current = schemaId
+  groupColorOverridesRef.current = groupColorOverrides
+
+  const snapshotNodes = useCallback((nds: Node[]) =>
     nds.filter(n => n.type === 'tableNode' || n.type === 'groupNode')
        .map(n => ({ id: n.id, position: { ...n.position }, style: n.style ? { ...n.style } : undefined }))
   , [])
 
-  const pushUndo = useCallback((snapshot: NodeSnapshot) => {
-    undoStack.current.push(snapshot)
-    if (undoStack.current.length > 60) undoStack.current.shift()
-    redoStack.current = []
-    setCanUndo(true)
-    setCanRedo(false)
-  }, [])
+  // Capture current full app state and push onto undo stack
+  const pushUndoState = useCallback(() => {
+    setNodes(nds => {
+      undoStack.current.push({
+        dbml: currentContentRef.current,
+        schemaId: schemaIdRef.current,
+        nodePositions: snapshotNodes(nds),
+        groupColorOverrides: { ...groupColorOverridesRef.current },
+      })
+      if (undoStack.current.length > 60) undoStack.current.shift()
+      redoStack.current = []
+      setCanUndo(true)
+      setCanRedo(false)
+      return nds
+    })
+  }, [setNodes, snapshotNodes])
 
-  const restoreSnapshot = useCallback((snapshot: NodeSnapshot) => {
-    setNodes(nds => nds.map(n => {
-      const s = snapshot.find(x => x.id === n.id)
-      if (!s) return n
-      return { ...n, position: s.position, style: s.style ?? n.style }
-    }))
-  }, [setNodes])
-
-  const handleUndo = useCallback(() => {
+  const handleUndo = useCallback(async () => {
     if (undoStack.current.length === 0) return
-    setNodes(nds => { redoStack.current.push(snapshotNodes(nds)); return nds })
+    setNodes(nds => {
+      redoStack.current.push({
+        dbml: currentContentRef.current,
+        schemaId: schemaIdRef.current,
+        nodePositions: snapshotNodes(nds),
+        groupColorOverrides: { ...groupColorOverridesRef.current },
+      })
+      return nds
+    })
     const snapshot = undoStack.current.pop()!
-    restoreSnapshot(snapshot)
+    setGroupColorOverrides(snapshot.groupColorOverrides)
+    if (snapshot.dbml !== null && snapshot.dbml !== currentContentRef.current) {
+      const restoreId = snapshot.schemaId ?? `hash_${simpleHash(snapshot.dbml)}`
+      const forcePos = snapshot.nodePositions.map(p => ({
+        id: p.id, x: p.position.x, y: p.position.y,
+        w: (p.style?.width as number) ?? undefined,
+        h: (p.style?.height as number) ?? undefined,
+      }))
+      setCurrentContent(snapshot.dbml)
+      setSchemaId(restoreId)
+      await buildGraphRef.current!(snapshot.dbml, restoreId, forcePos, true)
+    } else {
+      setNodes(nds => nds.map(n => {
+        const s = snapshot.nodePositions.find(x => x.id === n.id)
+        if (!s) return n
+        return { ...n, position: s.position, style: s.style ?? n.style }
+      }))
+    }
     setCanUndo(undoStack.current.length > 0)
     setCanRedo(true)
-  }, [setNodes, snapshotNodes, restoreSnapshot])
+  }, [setNodes, snapshotNodes, setGroupColorOverrides, setCurrentContent, setSchemaId])
 
-  const handleRedo = useCallback(() => {
+  const handleRedo = useCallback(async () => {
     if (redoStack.current.length === 0) return
-    setNodes(nds => { undoStack.current.push(snapshotNodes(nds)); return nds })
+    setNodes(nds => {
+      undoStack.current.push({
+        dbml: currentContentRef.current,
+        schemaId: schemaIdRef.current,
+        nodePositions: snapshotNodes(nds),
+        groupColorOverrides: { ...groupColorOverridesRef.current },
+      })
+      return nds
+    })
     const snapshot = redoStack.current.pop()!
-    restoreSnapshot(snapshot)
+    setGroupColorOverrides(snapshot.groupColorOverrides)
+    if (snapshot.dbml !== null && snapshot.dbml !== currentContentRef.current) {
+      const restoreId = snapshot.schemaId ?? `hash_${simpleHash(snapshot.dbml)}`
+      const forcePos = snapshot.nodePositions.map(p => ({
+        id: p.id, x: p.position.x, y: p.position.y,
+        w: (p.style?.width as number) ?? undefined,
+        h: (p.style?.height as number) ?? undefined,
+      }))
+      setCurrentContent(snapshot.dbml)
+      setSchemaId(restoreId)
+      await buildGraphRef.current!(snapshot.dbml, restoreId, forcePos, true)
+    } else {
+      setNodes(nds => nds.map(n => {
+        const s = snapshot.nodePositions.find(x => x.id === n.id)
+        if (!s) return n
+        return { ...n, position: s.position, style: s.style ?? n.style }
+      }))
+    }
     setCanUndo(true)
     setCanRedo(redoStack.current.length > 0)
-  }, [setNodes, snapshotNodes, restoreSnapshot])
+  }, [setNodes, snapshotNodes, setGroupColorOverrides, setCurrentContent, setSchemaId])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -219,6 +309,9 @@ function AppInner() {
     const list = await wsHook.listWorkspaces()
     setWorkspaceList(list)
   }, [wsHook])
+
+  // Keep nodesRef in sync for position-preserving rebuilds
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
 
   // Auto-load last workspace on mount
   useEffect(() => {
@@ -258,8 +351,9 @@ function AppInner() {
       hiddenTables: [...hiddenTables],
       hasDocs: Object.keys(docs).length > 0,
       docs,
+      groupColorOverrides,
     }
-  }, [currentContent, schemaId, docOverrides, hiddenTables, docs, setNodes, positionsHook])
+  }, [currentContent, schemaId, docOverrides, hiddenTables, docs, groupColorOverrides, setNodes, positionsHook])
 
   const handleSaveWorkspace = useCallback(async (name: string, existingId?: string) => {
     const data = await captureWorkspaceData()
@@ -275,6 +369,7 @@ function AppInner() {
     setCurrentContent(ws.schemaContent)
     setDocOverrides(ws.docOverrides ?? {})
     setHiddenTables(new Set(ws.hiddenTables ?? []))
+    if (ws.groupColorOverrides) setGroupColorOverrides(ws.groupColorOverrides)
     await buildGraph(ws.schemaContent, ws.schemaId, ws.nodePositions)
     // Re-apply hidden tables after buildGraph resets them
     if (ws.hiddenTables?.length) setHiddenTables(new Set(ws.hiddenTables))
@@ -379,7 +474,8 @@ function AppInner() {
   const buildGraph = useCallback(async (
     content: string,
     id: string,
-    forcePositions?: { id: string; x: number; y: number; w?: number; h?: number }[]
+    forcePositions?: { id: string; x: number; y: number; w?: number; h?: number }[],
+    skipHistoryClear?: boolean
   ) => {
     const parsed = parse(content)
     if (!parsed) return
@@ -396,7 +492,14 @@ function AppInner() {
     }
 
     const groupNames = [...new Set(parsed.tables.map(t => t.group).filter(Boolean) as string[])]
-    const groupColors = buildGroupColors(groupNames)
+    const paletteColors = buildGroupColors(groupNames)
+    const overrides = groupColorOverridesRef.current
+    // Collect colors declared via [color: #hex] in the DBML (one per group name)
+    const dbmlColors: Record<string, string> = {}
+    parsed.tables.forEach(t => { if (t.group && t.groupColor) dbmlColors[t.group] = t.groupColor })
+    const groupColors: Record<string, string> = Object.fromEntries(
+      groupNames.map((name, i) => [name, overrides[name] ?? dbmlColors[name] ?? paletteColors[name]])
+    )
 
     // When no saved positions exist and groups are declared, default to group layout
     let defaultGroupBoxes: Record<string, { x: number; y: number; width: number; height: number }> | null = null
@@ -429,7 +532,7 @@ function AppInner() {
         zIndex: -1,
         data: {
           groupName: gName,
-          color: GROUP_PALETTE[i % GROUP_PALETTE.length],
+          color: groupColors[gName] ?? GROUP_PALETTE[i % GROUP_PALETTE.length],
           editable: false,
           onToggleEdit: handleToggleGroupEdit,
         } satisfies GroupNodeData,
@@ -459,8 +562,11 @@ function AppInner() {
       id: `edge-${i}-${r.fromTable}-${r.toTable}`,
       source: r.fromTable,
       target: r.toTable,
+      sourceHandle: 'right-source',
+      targetHandle: 'left-target',
       type: 'smoothstep',
       animated: false,
+      reconnectable: true,
       label: showLabels ? `${r.fromColumn} → ${r.toColumn}` : undefined,
       data: { ref: r },
       style: { stroke: '#475569', strokeWidth: 1.5 },
@@ -472,12 +578,32 @@ function AppInner() {
     setHiddenTables(new Set())
     setSelectedNodeId(null)
     setEditableGroups(new Set())
-    undoStack.current = []
-    redoStack.current = []
-    setCanUndo(false)
-    setCanRedo(false)
+    if (!skipHistoryClear) {
+      undoStack.current = []
+      redoStack.current = []
+      setCanUndo(false)
+      setCanRedo(false)
+    }
     setTimeout(() => fitView({ duration: 600, padding: 0.1 }), 100)
   }, [parse, showLabels, setNodes, setEdges, fitView, handleToggleGroupEdit])
+
+  // Keep buildGraphRef in sync so handleSchemaUpdate can reference it after declaration
+  buildGraphRef.current = buildGraph
+
+  const handleSchemaUpdate = useCallback(async (newDbml: string) => {
+    pushUndoState()
+    setCurrentContent(newDbml)
+    const id = schemaId ?? `hash_${simpleHash(newDbml)}`
+    setSchemaId(id)
+    const currentPositions = nodesRef.current
+      .filter(n => n.type === 'tableNode' || n.type === 'groupNode')
+      .map(n => ({
+        id: n.id, x: n.position.x, y: n.position.y,
+        w: (n.style?.width as number) ?? undefined,
+        h: (n.style?.height as number) ?? undefined,
+      }))
+    await buildGraphRef.current!(newDbml, id, currentPositions, true)
+  }, [schemaId, pushUndoState])
 
   // ── Sync editable groups to node data ──────────────────────────────────────
   useEffect(() => {
@@ -494,6 +620,17 @@ function AppInner() {
     }))
   }, [editableGroups, setNodes, handleToggleGroupEdit])
 
+  // ── Sync group colors to node data ─────────────────────────────────────────
+  useEffect(() => {
+    setNodes(nds => nds.map(n => {
+      if (n.type !== 'groupNode') return n
+      const gName = (n.data as GroupNodeData).groupName
+      const override = groupColorOverrides[gName]
+      if (!override) return n
+      return { ...n, data: { ...n.data, color: override } }
+    }))
+  }, [groupColorOverrides, setNodes])
+
   const handleParse = useCallback(async (content: string, filename?: string) => {
     const id = filename ?? `hash_${simpleHash(content)}`
     const label = filename ?? `Colado em ${new Date().toLocaleTimeString('pt-BR')} ${new Date().toLocaleDateString('pt-BR')}`
@@ -509,9 +646,9 @@ function AppInner() {
 
   // ── Drag handlers ──────────────────────────────────────────────────────────
   const handleNodeDragStart = useCallback((_: unknown, node: Node) => {
-    setNodes(nds => { pushUndo(snapshotNodes(nds)); return nds })
+    pushUndoState()
     return undefined
-  }, [setNodes, pushUndo, snapshotNodes])
+  }, [pushUndoState])
 
   const handleNodeDragStop = useCallback((_: unknown, node: Node) => {
     if (node.type !== 'tableNode') return
@@ -523,14 +660,16 @@ function AppInner() {
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   const applyLayout = useCallback((result: LayoutResult) => {
-    setNodes(nds => { pushUndo(snapshotNodes(nds)); return nds })
+    pushUndoState()
     const centerSet = result.centerTables ? new Set(result.centerTables) : null
     setNodes(nds => nds.map(n => {
       if (n.type === 'tableNode') {
         const pos = result.tablePositions[n.id]
         // Update snowflake-center marker (clear for non-snowflake layouts)
         const newData = { ...n.data, isSnowflakeCenter: centerSet ? centerSet.has(n.id) : false }
-        if (pos) {
+        // Guard NaN/Infinity — React Flow throws during render if position is non-finite,
+        // which unmounts the whole tree via the error boundary and resets schema → null.
+        if (pos && isFinite(pos.x) && isFinite(pos.y)) {
           if (schemaId) fetch(`/api/positions/${encodeURIComponent(schemaId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table_name: n.id, x: pos.x, y: pos.y }) }).catch(() => {})
           return { ...n, position: pos, data: newData }
         }
@@ -541,7 +680,7 @@ function AppInner() {
         const box = result.groupBoxes[key]
         // Set both top-level width/height AND style so React Flow resets
         // any internally tracked dimensions from NodeResizer edits.
-        if (box) return {
+        if (box && isFinite(box.x) && isFinite(box.y) && isFinite(box.width) && isFinite(box.height)) return {
           ...n,
           position: { x: box.x, y: box.y },
           width: box.width,
@@ -552,7 +691,7 @@ function AppInner() {
       return n
     }))
     setTimeout(() => fitView({ duration: 700, padding: 0.08 }), 80)
-  }, [setNodes, pushUndo, snapshotNodes, fitView, schemaId])
+  }, [setNodes, pushUndoState, fitView, schemaId])
 
   const handleReset = useCallback(async () => {
     if (!schemaId || !currentContent) return
@@ -561,7 +700,14 @@ function AppInner() {
   }, [schemaId, currentContent, positionsHook, buildGraph])
 
   const handleGroupLayout = useCallback(() => { if (schema) applyLayout(computeGroupLayout(schema)) }, [schema, applyLayout])
-  const handleSnowflakeLayout = useCallback(() => { if (schema) applyLayout(computeSnowflakeLayout(schema)) }, [schema, applyLayout])
+  const handleSnowflakeLayout = useCallback(() => {
+    if (!schema) return
+    try {
+      applyLayout(computeSnowflakeLayout(schema))
+    } catch (err) {
+      console.error('[SnowflakeLayout] Error:', err)
+    }
+  }, [schema, applyLayout])
 
   const handleEditDbml = useCallback(async (content: string) => {
     setCurrentContent(content)
@@ -570,6 +716,151 @@ function AppInner() {
     await buildGraph(content, id)
     setShowDbmlEditor(false)
   }, [schemaId, buildGraph])
+
+  // ── Schema mutation handlers ──────────────────────────────────────────────
+  const handleAddRelation = useCallback((fromTable: string, fromCol: string, toTable: string, toCol: string, type: ParsedRef['relation']) => {
+    if (!schema) return
+    const newRef: ParsedRef = { fromTable, fromColumn: fromCol, toTable, toColumn: toCol, relation: type }
+    const newSchema = addRelation(schema, newRef)
+    handleSchemaUpdate(schemaToDbml(newSchema))
+    setPendingRelation(null)
+    setDrawingFrom(null)
+  }, [schema, handleSchemaUpdate])
+
+  const handleDeleteRelation = useCallback((ref: ParsedRef) => {
+    if (!schema) return
+    handleSchemaUpdate(schemaToDbml(removeRelation(schema, ref)))
+  }, [schema, handleSchemaUpdate])
+
+  const handleUpdateRelation = useCallback((oldRef: ParsedRef, newRef: ParsedRef) => {
+    if (!schema) return
+    handleSchemaUpdate(schemaToDbml(replaceRelation(schema, oldRef, newRef)))
+  }, [schema, handleSchemaUpdate])
+
+  // Called when the user drags an edge endpoint to a new handle
+  const handleReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    setEdges(eds => reconnectEdge(oldEdge, newConnection, eds))
+    // If source or target table changed, update the schema relation
+    const oldRef = (oldEdge.data as any)?.ref as ParsedRef | undefined
+    if (!oldRef || !schema) return
+    const newSource = newConnection.source ?? oldEdge.source
+    const newTarget = newConnection.target ?? oldEdge.target
+    if (newSource === oldEdge.source && newTarget === oldEdge.target) return // only handle side changed, no schema change needed
+    const newRef: ParsedRef = {
+      ...oldRef,
+      fromTable: newSource,
+      toTable: newTarget,
+      // Reset column names to first available columns of the new tables
+      fromColumn: schema.tables.find(t => t.name === newSource)?.columns[0]?.name ?? oldRef.fromColumn,
+      toColumn: schema.tables.find(t => t.name === newTarget)?.columns[0]?.name ?? oldRef.toColumn,
+    }
+    handleSchemaUpdate(schemaToDbml(replaceRelation(schema, oldRef, newRef)))
+  }, [schema, handleSchemaUpdate, setEdges])
+
+  const handleAddTable = useCallback((name: string, x: number, y: number) => {
+    if (!schema) return
+    const newTable = {
+      name,
+      group: null as string | null,
+      groupColor: null as string | null,
+      columns: [{ name: 'id', type: 'int', pk: true, nullable: false }] as ParsedColumn[],
+    }
+    const newSchema = addTable(schema, newTable)
+    const newDbml = schemaToDbml(newSchema)
+    setCurrentContent(newDbml)
+    const id = schemaId ?? `hash_${simpleHash(newDbml)}`
+    setSchemaId(id)
+    const currentPositions: { id: string; x: number; y: number; w?: number; h?: number }[] = nodesRef.current
+      .filter(n => n.type === 'tableNode' || n.type === 'groupNode')
+      .map(n => ({ id: n.id, x: n.position.x, y: n.position.y, w: (n.style?.width as number) || undefined, h: (n.style?.height as number) || undefined }))
+    // Place new table at given position
+    currentPositions.push({ id: name, x, y })
+    buildGraph(newDbml, id, currentPositions)
+  }, [schema, schemaId, buildGraph])
+
+  const handleSetGroup = useCallback((tableName: string, group: string | null) => {
+    if (!schema) return
+    // Once a table is assigned to a pending group, it graduates to a real group
+    if (group) setPendingGroups(prev => prev.filter(g => g !== group))
+    const newSchema = setTableGroup(schema, tableName, group)
+    handleSchemaUpdate(schemaToDbml(newSchema))
+    if (selectedTable?.name === tableName) {
+      setSelectedTable(newSchema.tables.find(t => t.name === tableName) ?? null)
+    }
+  }, [schema, handleSchemaUpdate, selectedTable])
+
+  const handleDeleteTable = useCallback((tableName: string) => {
+    if (!schema) return
+    handleSchemaUpdate(schemaToDbml(removeTable(schema, tableName)))
+    if (selectedTable?.name === tableName) { setSelectedTable(null); setSelectedNodeId(null) }
+  }, [schema, handleSchemaUpdate, selectedTable])
+
+  const handleUpdateTable = useCallback((tableName: string, update: { name?: string; columns?: ParsedColumn[] }) => {
+    if (!schema) return
+    const newSchema = mutateTable(schema, tableName, update)
+    handleSchemaUpdate(schemaToDbml(newSchema))
+    // Update selected table reference
+    if (selectedTable?.name === tableName && update.name) {
+      setSelectedTable(newSchema.tables.find(t => t.name === (update.name ?? tableName)) ?? null)
+    }
+  }, [schema, handleSchemaUpdate, selectedTable])
+
+  const handleAddGroup = useCallback((name: string, color: string) => {
+    if (!name.trim()) return
+    setGroupColorOverrides(prev => ({ ...prev, [name]: color }))
+    setPendingGroups(prev => prev.includes(name) ? prev : [...prev, name])
+  }, [])
+
+  const handleGroupColorChangeStart = useCallback(() => {
+    pushUndoState()
+  }, [pushUndoState])
+
+  const handleChangeGroupColor = useCallback((name: string, color: string) => {
+    setGroupColorOverrides(prev => ({ ...prev, [name]: color }))
+  }, [])
+
+  const handleRenameGroup = useCallback((oldName: string, newName: string) => {
+    if (!newName || newName === oldName) return
+    setPendingGroups(prev => prev.map(g => g === oldName ? newName : g))
+    setGroupColorOverrides(prev => {
+      const color = prev[oldName]
+      if (!color) return prev
+      const next = { ...prev, [newName]: color }
+      delete next[oldName]
+      return next
+    })
+    if (!schema) return
+    handleSchemaUpdate(schemaToDbml(renameGroup(schema, oldName, newName)))
+  }, [schema, handleSchemaUpdate])
+
+  const handleDeleteGroup = useCallback((name: string) => {
+    setPendingGroups(prev => prev.filter(g => g !== name))
+    setGroupColorOverrides(prev => { const next = { ...prev }; delete next[name]; return next })
+    if (!schema) return
+    handleSchemaUpdate(schemaToDbml(deleteGroup(schema, name)))
+  }, [schema, handleSchemaUpdate])
+
+  const handleAddTableWithGroup = useCallback((name: string, x: number, y: number, group?: string | null) => {
+    if (!schema) return
+    pushUndoState()
+    let schemaWithGroup = schema
+    const newTable: ParsedTable = {
+      name,
+      group: group ?? null,
+      groupColor: group ? (groupColorOverrides[group] ?? null) : null,
+      columns: [{ name: 'id', type: 'int', pk: true, nullable: false }],
+    }
+    schemaWithGroup = addTable(schemaWithGroup, newTable)
+    const newDbml = schemaToDbml(schemaWithGroup)
+    setCurrentContent(newDbml)
+    const id = schemaId ?? `hash_${simpleHash(newDbml)}`
+    setSchemaId(id)
+    const currentPositions = nodesRef.current
+      .filter(n => n.type === 'tableNode' || n.type === 'groupNode')
+      .map(n => ({ id: n.id, x: n.position.x, y: n.position.y, w: (n.style?.width as number) || undefined, h: (n.style?.height as number) || undefined }))
+    currentPositions.push({ id: name, x, y, w: undefined, h: undefined })
+    buildGraph(newDbml, id, currentPositions, true)
+  }, [schema, schemaId, buildGraph, groupColorOverrides, pushUndoState])
 
   // ── PNG Export ─────────────────────────────────────────────────────────────
   const handleSavePng = useCallback(async () => {
@@ -647,8 +938,10 @@ function AppInner() {
       for (const file of Array.from(files)) {
         if (!file.name.endsWith('.md')) continue
         const content = await readFile(file)
-        const doc = parseDocFile(file.name, content)
-        newDocs[doc.tableName] = doc
+        const multi = parseMultiDocFile(content)
+        if (multi.length > 0) {
+          multi.forEach(doc => { newDocs[doc.tableName] = doc })
+        }
       }
       setDocs(newDocs)
       if (schema) {
@@ -725,10 +1018,19 @@ function AppInner() {
     }))
   }, [search, activeGroups, schema, setNodes])
 
-  // Hidden tables
+  // Hidden tables + hidden group backgrounds
   useEffect(() => {
-    setNodes(nds => nds.map(n => n.type !== 'tableNode' ? n : { ...n, hidden: hiddenTables.has(n.id) }))
-  }, [hiddenTables, setNodes])
+    setNodes(nds => nds.map(n => {
+      if (n.type === 'tableNode') return { ...n, hidden: hiddenTables.has(n.id) }
+      if (n.type === 'groupNode') {
+        const gName = n.id.replace('group__', '')
+        const groupTables = schema?.tables.filter(t => (t.group ?? 'Sem grupo') === gName) ?? []
+        const allHidden = groupTables.length > 0 && groupTables.every(t => hiddenTables.has(t.name))
+        return { ...n, hidden: allHidden }
+      }
+      return n
+    }))
+  }, [hiddenTables, schema, setNodes])
 
   // Edge visibility + labels
   useEffect(() => {
@@ -743,9 +1045,20 @@ function AppInner() {
   }, [showEdges, showLabels, setEdges])
 
   // ── Derived data ───────────────────────────────────────────────────────────
-  const groups = schema
-    ? [...new Set(schema.tables.map(t => t.group).filter(Boolean) as string[])].map((name, i) => ({ name, color: GROUP_PALETTE[i % GROUP_PALETTE.length] }))
-    : []
+  const groups = (() => {
+    const schemaGroupNames = schema
+      ? [...new Set(schema.tables.map(t => t.group).filter(Boolean) as string[])]
+      : []
+    // Merge pending groups (created in UI but not yet assigned any table)
+    const allNames = [...new Set([...schemaGroupNames, ...pendingGroups])]
+    // Prefer DBML-declared color (same logic as buildGraph), then user override, then palette
+    const dbmlColors: Record<string, string> = {}
+    schema?.tables.forEach(t => { if (t.group && t.groupColor) dbmlColors[t.group] = t.groupColor })
+    return allNames.map((name, i) => ({
+      name,
+      color: groupColorOverrides[name] ?? dbmlColors[name] ?? GROUP_PALETTE[i % GROUP_PALETTE.length],
+    }))
+  })()
 
   const hiddenGroups = new Set<string>(
     groups.filter(g => {
@@ -823,6 +1136,10 @@ function AppInner() {
         onFocusGroup={handleFocusGroup}
         onToggleGroupVisibility={handleToggleGroupVisibility}
         hiddenGroups={hiddenGroups}
+        onChangeGroupColor={handleChangeGroupColor}
+        onRenameGroup={handleRenameGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onGroupColorChangeStart={handleGroupColorChangeStart}
         search={search}
         onSearch={setSearch}
         tables={tableVisibilityRows}
@@ -841,34 +1158,117 @@ function AppInner() {
         onToggleDarkMode={toggleDarkMode}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
+        boxSelectMode={boxSelectMode}
+        onToggleBoxSelect={toggleBoxSelect}
       />
 
-      <div className="flex-1 relative min-w-0">
+      <div
+        ref={canvasContainerRef}
+        className="flex-1 relative min-w-0"
+        style={{ cursor: relationMode ? (drawingFrom ? 'crosshair' : 'cell') : undefined }}
+        onMouseDown={e => {
+          paneMouseDownRef.current = { x: e.clientX, y: e.clientY }
+          // If drag starts on an edge path, forward the mousedown to the pane so
+          // ReactFlow's pan handler kicks in (edges normally swallow the event).
+          const target = e.target as Element
+          if (target.closest('.react-flow__edge')) {
+            const pane = canvasContainerRef.current?.querySelector('.react-flow__pane')
+            pane?.dispatchEvent(new MouseEvent('mousedown', {
+              bubbles: true, cancelable: true,
+              clientX: e.clientX, clientY: e.clientY,
+              button: e.button, buttons: e.buttons,
+            }))
+          }
+        }}
+        onMouseMove={e => {
+          if (!relationMode || !drawingFrom) return
+          const rect = canvasContainerRef.current?.getBoundingClientRect()
+          if (!rect) return
+          setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Escape') {
+            setRelationMode(false)
+            setDrawingFrom(null)
+            setPendingRelation(null)
+            setMousePos(null)
+          }
+        }}
+        tabIndex={-1}
+      >
+        {/* Ghost SVG line while drawing a relation */}
+        {relationMode && drawingFrom && mousePos && (() => {
+          const nodeEl = canvasContainerRef.current?.querySelector(`[data-id="${drawingFrom}"]`)
+          const containerRect = canvasContainerRef.current?.getBoundingClientRect()
+          if (!nodeEl || !containerRect) return null
+          const nr = nodeEl.getBoundingClientRect()
+          const sx = (nr.left + nr.width / 2) - containerRect.left
+          const sy = (nr.top + nr.height / 2) - containerRect.top
+          return (
+            <svg className="absolute inset-0 pointer-events-none z-10" style={{ width: '100%', height: '100%' }}>
+              <defs>
+                <filter id="glow-red">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#ef4444" floodOpacity="0.6"/>
+                </filter>
+              </defs>
+              <path d={`M ${sx} ${sy} L ${mousePos.x} ${mousePos.y}`}
+                stroke="#ef4444" strokeWidth="5" strokeOpacity="0.15" strokeLinecap="round" fill="none" />
+              <path d={`M ${sx} ${sy} L ${mousePos.x} ${mousePos.y}`}
+                stroke="#ef4444" strokeWidth="2" strokeDasharray="8 5" fill="none"
+                filter="url(#glow-red)"
+                style={{ animation: 'dash-flow 0.45s linear infinite' }} />
+              <circle cx={sx} cy={sy} r="5" fill="#ef4444" opacity="0.8" />
+              <circle cx={mousePos.x} cy={mousePos.y} r="4" fill="#ef4444" opacity="0.5"
+                style={{ animation: 'pulse 1s ease-in-out infinite' }} />
+            </svg>
+          )
+        })()}
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={params => setEdges(eds => addEdge(params, eds))}
+          onReconnect={handleReconnect}
           onNodeDragStart={handleNodeDragStart}
           onNodeDragStop={handleNodeDragStop}
           onNodeClick={(_, node) => {
             if (node.type === 'tableNode') {
+              if (relationMode) {
+                if (!drawingFrom) {
+                  setDrawingFrom(node.id)
+                } else if (drawingFrom !== node.id) {
+                  setPendingRelation({ fromTable: drawingFrom, toTable: node.id })
+                  setDrawingFrom(null)
+                  setMousePos(null)
+                }
+                return
+              }
               setSelectedTable(schema.tables.find(t => t.name === node.id) ?? null)
               setSelectedNodeId(prev => prev === node.id ? null : node.id)
             }
           }}
-          onEdgeClick={(_, edge) => {
+          onEdgeClick={(evt, edge) => {
+            const down = paneMouseDownRef.current
+            if (down && Math.hypot(evt.clientX - down.x, evt.clientY - down.y) > 5) return
             const refData = (edge.data as any)?.ref
             if (refData?.toTable) handleFocusTable(refData.toTable)
           }}
-          onPaneClick={() => { setSelectedTable(null); setSelectedNodeId(null) }}
+          onPaneClick={() => {
+            if (relationMode) { setDrawingFrom(null); setMousePos(null); return }
+            setSelectedTable(null); setSelectedNodeId(null)
+          }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
+          minZoom={0.02}
+          maxZoom={2}
           proOptions={{ hideAttribution: true }}
           colorMode={darkMode ? 'dark' : 'light'}
           style={{ width: '100%', height: '100%' }}
+          selectionOnDrag={boxSelectMode}
+          panOnDrag={!boxSelectMode}
         >
           <Background color={darkMode ? '#1e293b' : '#cbd5e1'} gap={20} />
           <Controls className={darkMode ? '!bg-slate-900 !border-slate-700' : '!bg-white !border-gray-200'} />
@@ -881,6 +1281,32 @@ function AppInner() {
             zoomable
             pannable
           />
+          <CanvasToolbar
+            schema={schema}
+            relationMode={relationMode}
+            drawingFrom={drawingFrom}
+            relationType={relationType}
+            pendingRelation={pendingRelation}
+            tableCount={schema.tables.length}
+            darkMode={darkMode}
+            onToggleRelationMode={() => {
+              setRelationMode(v => !v)
+              setDrawingFrom(null)
+              setPendingRelation(null)
+              setMousePos(null)
+            }}
+            onSetRelationType={setRelationType}
+            onCancelRelation={() => {
+              setDrawingFrom(null)
+              setPendingRelation(null)
+              setMousePos(null)
+              setRelationMode(false)
+            }}
+            onConfirmRelation={handleAddRelation}
+            onAddTable={handleAddTableWithGroup}
+            onAddGroup={handleAddGroup}
+            groups={groups}
+          />
         </ReactFlow>
       </div>
 
@@ -892,6 +1318,13 @@ function AppInner() {
         onClose={() => { setSelectedTable(null); setSelectedNodeId(null) }}
         onFocusTable={handleFocusTable}
         onDocEdit={handleDocEdit}
+        onUpdateTable={handleUpdateTable}
+        onSetGroup={handleSetGroup}
+        onDeleteTable={handleDeleteTable}
+        onDeleteRelation={handleDeleteRelation}
+        onUpdateRelation={handleUpdateRelation}
+        allTables={schema.tables}
+        allGroups={groups.map(g => g.name)}
         darkMode={darkMode}
       />
 
