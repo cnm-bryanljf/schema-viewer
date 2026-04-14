@@ -255,9 +255,3 @@ schema-viewer/
 | Editor inline | Monaco Editor (`@monaco-editor/react`) |
 | Export PNG | `html-to-image` |
 | Compressão `.svx` | `CompressionStream` API (nativa do browser) |
-
----
-
-## Licença
-
-MIT
