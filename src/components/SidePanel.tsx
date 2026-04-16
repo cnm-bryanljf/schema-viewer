@@ -16,6 +16,7 @@ type Props = {
   onUpdateTable?: (tableName: string, update: { name?: string; columns?: ParsedColumn[] }) => void
   onSetGroup?: (tableName: string, group: string | null) => void
   onDeleteTable?: (tableName: string) => void
+  onAddRelation?: (fromTable: string, fromColumn: string, toTable: string, toColumn: string, type: ParsedRef['relation']) => void
   onDeleteRelation?: (ref: ParsedRef) => void
   onUpdateRelation?: (oldRef: ParsedRef, newRef: ParsedRef) => void
   allTables?: ParsedTable[]
@@ -46,7 +47,10 @@ function ColumnRow({
           : <span className="w-4 shrink-0" />
         }
         <span className="text-gray-800 dark:text-slate-200 font-medium truncate flex-1">{col.name}</span>
-        <span className="text-gray-500 dark:text-slate-400 font-mono shrink-0">{col.type}</span>
+        <div className="flex flex-col items-end shrink-0">
+          <span className="text-gray-500 dark:text-slate-400 font-mono">{col.type}</span>
+          {doc?.required === false && <span className="text-gray-400 dark:text-slate-500 font-mono text-[10px] leading-tight">Opcional</span>}
+        </div>
         {!col.nullable && <span className="text-red-400 shrink-0" title="NOT NULL">*</span>}
         {hasSummary
           ? <svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" className={`ml-1 text-gray-400 dark:text-slate-500 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}><polygon points="1,0 7,4 1,8" /></svg>
@@ -140,6 +144,68 @@ function darkInputCls(p: Record<string, string>) {
   return p.panel.includes('slate') ? 'bg-slate-800 border-slate-600 text-slate-200' : 'bg-gray-50 border-gray-300 text-gray-800'
 }
 
+// ── Searchable table selector ──────────────────────────────────────────────────
+
+function SearchableTableSelect({
+  value, onChange, tables, placeholder, className, p,
+}: {
+  value: string
+  onChange: (v: string) => void
+  tables: ParsedTable[] | undefined
+  placeholder: string
+  className: string
+  p: Record<string, string>
+}) {
+  const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(false)
+  const filtered = tables?.filter(t => t.name.toLowerCase().includes(search.toLowerCase())) ?? []
+  const selected = tables?.find(t => t.name === value)
+
+  return (
+    <div className="relative w-full">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`${className} flex items-center justify-between`}
+      >
+        <span className="truncate">{selected?.name || placeholder}</span>
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M0 0l4 5 4-5z" />
+        </svg>
+      </button>
+      {open && (
+        <div className={`absolute top-full left-0 right-0 mt-1 rounded border z-50 ${p.panel} shadow-lg`}>
+          <input
+            autoFocus
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Pesquisar..."
+            className={`w-full text-xs px-2 py-1 border-b ${darkInputCls(p)} focus:outline-none`}
+          />
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className={`text-xs ${p.textMuted} text-center py-2`}>Nenhuma tabela encontrada</div>
+            ) : (
+              filtered.map(t => (
+                <button
+                  key={t.name}
+                  onClick={() => {
+                    onChange(t.name)
+                    setSearch('')
+                    setOpen(false)
+                  }}
+                  className={`w-full text-left text-xs px-2 py-1.5 transition-colors ${value === t.name ? 'bg-blue-500 text-white' : `${p.text} hover:${p.rowHover.split('hover:')[1]}`}`}
+                >
+                  {t.name}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main SidePanel ────────────────────────────────────────────────────────────
 
 const REL_TYPES: { value: ParsedRef['relation']; label: string }[] = [
@@ -152,7 +218,7 @@ const REL_TYPES: { value: ParsedRef['relation']; label: string }[] = [
 export default function SidePanel({
   table, refs, schemaId, docs,
   onClose, onFocusTable, onDocEdit,
-  onUpdateTable, onSetGroup, onDeleteTable, onDeleteRelation, onUpdateRelation,
+  onUpdateTable, onSetGroup, onDeleteTable, onAddRelation, onDeleteRelation, onUpdateRelation,
   allTables, allGroups,
   darkMode,
 }: Props) {
@@ -169,6 +235,8 @@ export default function SidePanel({
   const [editedCols, setEditedCols] = useState<ParsedColumn[]>([])
   const [editingRelIdx, setEditingRelIdx] = useState<number | null>(null)
   const [editingRelData, setEditingRelData] = useState<ParsedRef | null>(null)
+  const [creatingRelation, setCreatingRelation] = useState(false)
+  const [newRelData, setNewRelData] = useState<Partial<ParsedRef> | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const { fetchNotes, saveNote, deleteNote } = usePositions(schemaId)
@@ -193,6 +261,8 @@ export default function SidePanel({
     setStructEdit(false)
     setShowAllSummaries(false)
     setEditingRelIdx(null)
+    setCreatingRelation(false)
+    setNewRelData(null)
     setShowDeleteConfirm(false)
   }, [table?.name, fetchNotes])
 
@@ -277,6 +347,28 @@ export default function SidePanel({
     if (oldRef) onUpdateRelation(oldRef, editingRelData)
     setEditingRelIdx(null)
     setEditingRelData(null)
+  }
+
+  const startCreateRelation = () => {
+    if (!table || !allTables) return
+    const otherTable = allTables.find(t => t.name !== table.name)
+    setNewRelData({
+      fromTable: table.name,
+      fromColumn: table.columns[0]?.name ?? '',
+      toTable: otherTable?.name ?? '',
+      toColumn: otherTable?.columns[0]?.name ?? '',
+      relation: '1-N',
+    })
+    setCreatingRelation(true)
+  }
+
+  const handleSaveNewRelation = () => {
+    if (!newRelData || !onAddRelation || !table) return
+    const { fromTable, fromColumn, toTable, toColumn, relation } = newRelData as ParsedRef
+    if (!fromTable || !fromColumn || !toTable || !toColumn || !relation) return
+    onAddRelation(fromTable, fromColumn, toTable, toColumn, relation)
+    setCreatingRelation(false)
+    setNewRelData(null)
   }
 
   // Navigation
@@ -501,13 +593,7 @@ export default function SidePanel({
                             ))}
                           </div>
                           <div className="flex gap-1">
-                            {allTables ? (
-                              <select value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e.target.value, fromColumn: allTables.find(t => t.name === e.target.value)?.columns[0]?.name ?? '' } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
-                                {allTables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-                              </select>
-                            ) : (
-                              <input value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="tabela origem" />
-                            )}
+                            <SearchableTableSelect value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e, fromColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela origem" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
                             {allTables ? (
                               <select value={editingRelData.fromColumn} onChange={e => setEditingRelData(d => d ? { ...d, fromColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
                                 {(allTables.find(t => t.name === editingRelData.fromTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
@@ -518,13 +604,7 @@ export default function SidePanel({
                           </div>
                           <div className="flex gap-1">
                             <span className={`text-xs ${p.textMuted} self-center w-3`}>→</span>
-                            {allTables ? (
-                              <select value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e.target.value, toColumn: allTables.find(t => t.name === e.target.value)?.columns[0]?.name ?? '' } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
-                                {allTables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-                              </select>
-                            ) : (
-                              <input value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="tabela destino" />
-                            )}
+                            <SearchableTableSelect value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e, toColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela destino" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
                             {allTables ? (
                               <select value={editingRelData.toColumn} onChange={e => setEditingRelData(d => d ? { ...d, toColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
                                 {(allTables.find(t => t.name === editingRelData.toTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
@@ -582,13 +662,7 @@ export default function SidePanel({
                               ))}
                             </div>
                             <div className="flex gap-1">
-                              {allTables ? (
-                                <select value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e.target.value, fromColumn: allTables.find(t => t.name === e.target.value)?.columns[0]?.name ?? '' } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
-                                  {allTables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-                                </select>
-                              ) : (
-                                <input value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="tabela origem" />
-                              )}
+                              <SearchableTableSelect value={editingRelData.fromTable} onChange={e => setEditingRelData(d => d ? { ...d, fromTable: e, fromColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela origem" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
                               {allTables ? (
                                 <select value={editingRelData.fromColumn} onChange={e => setEditingRelData(d => d ? { ...d, fromColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
                                   {(allTables.find(t => t.name === editingRelData.fromTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
@@ -599,13 +673,7 @@ export default function SidePanel({
                             </div>
                             <div className="flex gap-1">
                               <span className={`text-xs ${p.textMuted} self-center w-3`}>→</span>
-                              {allTables ? (
-                                <select value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e.target.value, toColumn: allTables.find(t => t.name === e.target.value)?.columns[0]?.name ?? '' } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
-                                  {allTables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-                                </select>
-                              ) : (
-                                <input value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="tabela destino" />
-                              )}
+                              <SearchableTableSelect value={editingRelData.toTable} onChange={e => setEditingRelData(d => d ? { ...d, toTable: e, toColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela destino" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
                               {allTables ? (
                                 <select value={editingRelData.toColumn} onChange={e => setEditingRelData(d => d ? { ...d, toColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
                                   {(allTables.find(t => t.name === editingRelData.toTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
@@ -646,8 +714,50 @@ export default function SidePanel({
                 </div>
               </div>
             )}
-            {outgoing.length === 0 && incoming.length === 0 && (
+            {outgoing.length === 0 && incoming.length === 0 && !creatingRelation && (
               <p className={`${p.textMuted} text-xs text-center py-8`}>Nenhuma relação</p>
+            )}
+            {creatingRelation && newRelData ? (
+              <div className={`rounded ${p.relation} p-2 space-y-1.5`}>
+                <div className="text-xs font-medium mb-1.5">Nova relação</div>
+                <div className="flex gap-1 flex-wrap">
+                  {REL_TYPES.map(rt => (
+                    <button key={rt.value} onClick={() => setNewRelData(d => d ? { ...d, relation: rt.value } : d)}
+                      className={`text-[10px] px-2 py-0.5 rounded border font-mono transition-colors ${newRelData.relation === rt.value ? 'bg-blue-600 border-blue-500 text-white' : p.btn}`}
+                    >{rt.label}</button>
+                  ))}
+                </div>
+                <div className="flex gap-1">
+                  <SearchableTableSelect value={newRelData.fromTable || ''} onChange={e => setNewRelData(d => d ? { ...d, fromTable: e, fromColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela origem" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
+                  {allTables ? (
+                    <select value={newRelData.fromColumn || ''} onChange={e => setNewRelData(d => d ? { ...d, fromColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
+                      {(allTables.find(t => t.name === newRelData.fromTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    </select>
+                  ) : (
+                    <input value={newRelData.fromColumn || ''} onChange={e => setNewRelData(d => d ? { ...d, fromColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="coluna origem" />
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <span className={`text-xs ${p.textMuted} self-center w-3`}>→</span>
+                  <SearchableTableSelect value={newRelData.toTable || ''} onChange={e => setNewRelData(d => d ? { ...d, toTable: e, toColumn: allTables?.find(t => t.name === e)?.columns[0]?.name ?? '' } : d)} tables={allTables} placeholder="Tabela destino" className={`flex-1 text-xs px-1.5 py-0.5 rounded border text-left ${darkInputCls(p)} focus:outline-none`} p={p} />
+                  {allTables ? (
+                    <select value={newRelData.toColumn || ''} onChange={e => setNewRelData(d => d ? { ...d, toColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`}>
+                      {(allTables.find(t => t.name === newRelData.toTable)?.columns ?? []).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    </select>
+                  ) : (
+                    <input value={newRelData.toColumn || ''} onChange={e => setNewRelData(d => d ? { ...d, toColumn: e.target.value } : d)} className={`flex-1 text-xs px-1.5 py-0.5 rounded border ${darkInputCls(p)} focus:outline-none`} placeholder="coluna destino" />
+                  )}
+                </div>
+                <div className="flex gap-1 pt-0.5">
+                  <button onClick={handleSaveNewRelation} className="text-xs px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors">Criar</button>
+                  <button onClick={() => { setCreatingRelation(false); setNewRelData(null) }} className={`text-xs px-2 py-0.5 ${p.btn} rounded transition-colors`}>Cancelar</button>
+                </div>
+              </div>
+            ) : onAddRelation && (
+              <button onClick={startCreateRelation} className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-xs ${p.btn} border border-dashed ${p.header} rounded-lg transition-colors`}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/></svg>
+                Nova relação
+              </button>
             )}
           </div>
         )}

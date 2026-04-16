@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ReactFlow,
   Background,
@@ -19,6 +20,7 @@ import '@xyflow/react/dist/style.css'
 
 import TableNode from './components/TableNode'
 import GroupNode from './components/GroupNode'
+import GroupHeadersOverlay from './components/GroupHeadersOverlay'
 import AnimatedDashedEdge from './components/AnimatedDashedEdge'
 import SidePanel from './components/SidePanel'
 import Sidebar from './components/Sidebar'
@@ -96,6 +98,7 @@ function AppInner() {
   const [currentContent, setCurrentContent] = useState<string | null>(null)
   const [showDbmlEditor, setShowDbmlEditor] = useState(false)
   const [docsModal, setDocsModal] = useState<{ title: string; lines: string[]; ok: boolean } | null>(null)
+  const [showOpenConfirmModal, setShowOpenConfirmModal] = useState(false)
 
   // Group drag/edit mode
   const [editableGroups, setEditableGroups] = useState<Set<string>>(new Set())
@@ -313,17 +316,9 @@ function AppInner() {
   // Keep nodesRef in sync for position-preserving rebuilds
   useEffect(() => { nodesRef.current = nodes }, [nodes])
 
-  // Auto-load last workspace on mount
+  // Load workspace list on mount (no auto-load of last workspace)
   useEffect(() => {
-    const init = async () => {
-      await refreshWorkspaceList()
-      const lastId = await wsHook.getLastWorkspaceId()
-      if (!lastId) return
-      const ws = await wsHook.loadWorkspace(lastId)
-      if (!ws) return
-      await restoreWorkspace(ws)
-    }
-    init()
+    refreshWorkspaceList()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -558,20 +553,29 @@ function AppInner() {
       })
     })
 
-    const newEdges: Edge[] = parsed.refs.map((r, i) => ({
-      id: `edge-${i}-${r.fromTable}-${r.toTable}`,
-      source: r.fromTable,
-      target: r.toTable,
-      sourceHandle: 'right-source',
-      targetHandle: 'left-target',
-      type: 'smoothstep',
-      animated: false,
-      reconnectable: true,
-      label: showLabels ? `${r.fromColumn} → ${r.toColumn}` : undefined,
-      data: { ref: r },
-      style: { stroke: '#475569', strokeWidth: 1.5 },
-      zIndex: 0,
-    }))
+    const newEdges: Edge[] = parsed.refs.map((r, i) => {
+      const sPos = layoutPositions[r.fromTable]
+      const tPos = layoutPositions[r.toTable]
+      // If the target is to the right (or unknown), source exits right and target enters left.
+      // If the target is to the left, source exits left and target enters right.
+      const targetIsRight = !sPos || !tPos || sPos.x <= tPos.x
+      const sourceHandle = targetIsRight ? 'right-source' : 'left-source'
+      const targetHandle = targetIsRight ? 'left-target' : 'right-target'
+      return {
+        id: `edge-${i}-${r.fromTable}-${r.toTable}`,
+        source: r.fromTable,
+        target: r.toTable,
+        sourceHandle,
+        targetHandle,
+        type: 'smoothstep',
+        animated: false,
+        reconnectable: true,
+        label: showLabels ? `${r.fromColumn} → ${r.toColumn}` : undefined,
+        data: { ref: r },
+        style: { stroke: '#475569', strokeWidth: 1.5 },
+        zIndex: 0,
+      }
+    })
 
     setNodes(newNodes)
     setEdges(newEdges)
@@ -606,14 +610,15 @@ function AppInner() {
   }, [schemaId, pushUndoState])
 
   // ── Sync editable groups to node data ──────────────────────────────────────
+  // Note: group drag is handled by GroupHeadersOverlay (outside React Flow stacking context)
+  // so we never set draggable:true on groupNode — the overlay moves the node via setNodes.
   useEffect(() => {
     setNodes(nds => nds.map(n => {
       if (n.type !== 'groupNode') return n
       const editable = editableGroups.has(n.id)
       return {
         ...n,
-        draggable: editable,
-        dragHandle: editable ? '.group-drag-handle' : undefined,
+        draggable: false,
         className: editable ? 'group-editable' : '',
         data: { ...n.data, editable, onToggleEdit: handleToggleGroupEdit },
       }
@@ -1077,7 +1082,16 @@ function AppInner() {
   if (!schema) {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <LandingScreen onParse={handleParse} parseError={parseError} onOpenEditor={() => setShowDbmlEditor(true)} onImportSvx={handleImportWorkspace} />
+        <LandingScreen
+          onParse={handleParse}
+          parseError={parseError}
+          onOpenEditor={() => setShowDbmlEditor(true)}
+          onImportSvx={handleImportWorkspace}
+          workspaces={workspaceList}
+          onLoadWorkspace={handleLoadWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          darkMode={darkMode}
+        />
         {showDbmlEditor && (
           <DbmlEditorModal
             content={currentContent ?? ''}
@@ -1114,7 +1128,13 @@ function AppInner() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(v => !v)}
-        onOpenFile={() => filePickerRef.current?.click()}
+        onOpenFile={() => {
+          if (currentContent) {
+            setShowOpenConfirmModal(true)
+          } else {
+            filePickerRef.current?.click()
+          }
+        }}
         onOpenDbmlEditor={() => setShowDbmlEditor(true)}
         onSavePng={handleSavePng}
         schemaHistory={schemaHistory}
@@ -1308,6 +1328,14 @@ function AppInner() {
             groups={groups}
           />
         </ReactFlow>
+
+        {/* Group header overlay — rendered outside React Flow's z-index stacking context
+            so headers appear above edges while the group body remains behind them */}
+        <GroupHeadersOverlay
+          editableGroups={editableGroups}
+          onToggleEdit={handleToggleGroupEdit}
+          onDragStart={pushUndoState}
+        />
       </div>
 
       <SidePanel
@@ -1321,6 +1349,7 @@ function AppInner() {
         onUpdateTable={handleUpdateTable}
         onSetGroup={handleSetGroup}
         onDeleteTable={handleDeleteTable}
+        onAddRelation={handleAddRelation}
         onDeleteRelation={handleDeleteRelation}
         onUpdateRelation={handleUpdateRelation}
         allTables={schema.tables}
@@ -1350,6 +1379,64 @@ function AppInner() {
           onApply={handleEditDbml}
           onClose={() => setShowDbmlEditor(false)}
         />
+      )}
+
+      {showOpenConfirmModal && createPortal(
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowOpenConfirmModal(false)}
+        >
+          <div
+            className={`w-80 rounded-xl shadow-2xl border overflow-hidden ${
+              darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${
+              darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0">
+                <path d="M8 2L1 14h14L8 2z"/><line x1="8" y1="7" x2="8" y2="10"/><line x1="8" y1="12" x2="8" y2="12.5"/>
+              </svg>
+              <span className={`text-sm font-semibold ${
+                darkMode ? 'text-slate-100' : 'text-gray-800'
+              }`}>Abrir novo arquivo</span>
+            </div>
+            {/* Body */}
+            <div className="px-4 py-3">
+              <p className={`text-xs ${
+                darkMode ? 'text-slate-400' : 'text-gray-500'
+              }`}>
+                Tem certeza que deseja abrir um novo arquivo? O projeto atual será substituído pelo arquivo selecionado.
+              </p>
+            </div>
+            {/* Footer */}
+            <div className={`flex justify-end gap-2 px-4 py-2.5 border-t ${
+              darkMode ? 'border-slate-700' : 'border-gray-100'
+            }`}>
+              <button
+                onClick={() => setShowOpenConfirmModal(false)}
+                className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  darkMode
+                    ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                }`}
+              >Cancelar</button>
+              <button
+                onClick={() => {
+                  // .click() deve ser chamado ANTES de qualquer setState —
+                  // o browser exige que file input clicks estejam no contexto
+                  // síncrono do gesto do usuário.
+                  filePickerRef.current?.click()
+                  setShowOpenConfirmModal(false)
+                }}
+                className="px-4 py-1.5 text-xs font-medium rounded-lg transition-colors bg-indigo-600 hover:bg-indigo-500 text-white"
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {docsModal && (

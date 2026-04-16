@@ -6053,8 +6053,6 @@ TableGroup "Analytics / Análise" [color: #10b981] {
   tb_estatisticas_historico
   tb_estatisticas_indicador
   tb_forca_atualizacao_elasticsearch
-  tb_imovel_area_comum_nao_encontrada
-  tb_imovel_area_privativa_nao_encontrada
   tb_log_webservice
   tb_processo_cron
   tb_processo_cron_log
@@ -6152,23 +6150,18 @@ TableGroup "Localização" [color: #14b8a6] {
   tb_uf_imovel
   tb_valida_cep_unico
   tb_webscraper_bairros
+  tb_cidade_regiao
+  tb_cidade_zona
 }
 TableGroup "Dependências" [color: #6b7280] {
   tb_bairro_sinonimo
   tb_chamado_tipo
-  tb_cidade_regiao
   tb_cidade_revendedora
-  tb_cidade_zona
   tb_cliente_congelado_motivo
-  tb_imovel_plano_assinatura_grupo
-  tb_imovel_plano_assinatura_regiao
-  tb_mailing_noticia_envio
   tb_parceiro
   tb_sys_user
   tb_sys_profile
   tb_telefone
-  tb_veiculo_plano_assinatura_regiao
-  tb_veiculo_plano_assinatura_grupo
   tb_vendedor
 }
 TableGroup "Pagamento / Fiscal" [color: #ef4444] {
@@ -6202,7 +6195,7 @@ TableGroup "Email / Mailing" [color: #ec4899] {
   tb_mailing_group
   tb_mailing_noticia
   tb_mailing_noticia_grupo
-  tb_mailing_veiculo_propostas_modelo
+  tb_mailing_noticia_envio
   tb_template_email_cliente
 }
 TableGroup "Financeiro / Contrato" [color: #6366f1] {
@@ -6249,9 +6242,11 @@ TableGroup "Imóvel - Busca / SEO" [color: #3b82f6] {
   tb_buscador_imovel_filtro_palavra_chave
   tb_buscador_imovel_filtro_sinonimo
   tb_imovel_busca
+  tb_imovel_busca_order_rand
   tb_imovel_ordenacao
   tb_imovel_resumo
   tb_imovel_resumo_novo
+  tb_imovel_resumo_conveniencia
   tb_imovel_seo_tag
   tb_imovel_seo_texto
   tb_imovel_seo_texto_faq
@@ -6266,6 +6261,7 @@ TableGroup "Veículo - Busca / SEO" [color: #f97316] {
   tb_veiculo_links
   tb_veiculo_seo_tag
   tb_veiculo_seo_texto
+  tb_veiculo_seo_texto_faq
 }
 TableGroup "Imóvel - Plano" [color: #3b82f6] {
   tb_configuracao_pre_cadastro_imovel
@@ -6275,6 +6271,8 @@ TableGroup "Imóvel - Plano" [color: #3b82f6] {
   tb_imovel_plano_assinatura_cliente_imovel
   tb_imovel_plano_assinatura_uf
   tb_imovel_plano_assinatura_regiao_cidade
+  tb_imovel_plano_assinatura_grupo
+  tb_imovel_plano_assinatura_regiao
 }
 TableGroup "Veículo - Plano" [color: #f97316] {
   tb_configuracao_pre_cadastro_veiculo
@@ -6284,6 +6282,8 @@ TableGroup "Veículo - Plano" [color: #f97316] {
   tb_veiculo_plano_assinatura_cliente_veiculo
   tb_veiculo_plano_assinatura_uf
   tb_veiculo_plano_assinatura_regiao_cidade
+  tb_veiculo_plano_assinatura_grupo
+  tb_veiculo_plano_assinatura_regiao
 }
 TableGroup "Veículo - Revendedoras / FIPE" [color: #f97316] {
   tb_contato_tabela_fipe
@@ -6300,7 +6300,6 @@ TableGroup "Veículo - Revendedoras / FIPE" [color: #f97316] {
 TableGroup "Imóvel - Ciclo de Vida" [color: #3b82f6] {
   tb_email_tentativa_bloqueado_log
   tb_imovel_agendar_visita
-  tb_imovel_busca_order_rand
   tb_imovel_consolidado
   tb_imovel_nao_importado
   tb_imovel_oportunidade
@@ -6346,7 +6345,6 @@ TableGroup "Imóvel - Core" [color: #3b82f6] {
   tb_imovel_excluido
   tb_imovel_dominios_tour
   tb_imovel_integracao
-  tb_imovel_resumo_conveniencia
   tb_imovel_video
   tb_imovel_tipo
   tb_imovel_texto_lancamentos
@@ -6366,6 +6364,8 @@ TableGroup "Imóvel - Áreas" [color: #3b82f6] {
   tb_imovel_area_privativa_imovel
   tb_imovel_area_privativa_sinonima
   tb_imovel_area_privativa_tipo_imovel
+  tb_imovel_area_comum_nao_encontrada
+  tb_imovel_area_privativa_nao_encontrada
 }
 TableGroup "Imóvel - Características" [color: #3b82f6] {
   tb_imovel_caracteristica
@@ -6418,13 +6418,13 @@ TableGroup "Veículo - Importação" [color: #f97316] {
   tb_veiculo_importacao_log
   tb_veiculo_importacao_log_dados
   tb_veiculo_importacao_opcionais_nao_encontrados
-  tb_veiculo_plano_assinatura_cliente_veiculo_tmp
 }
 TableGroup "Veículo - Mailing" [color: #f97316] {
   tb_mailing_veiculo
   tb_mailing_veiculo_anuncio
   tb_mailing_veiculo_envio
   tb_mailing_veiculo_grupo
+  tb_mailing_veiculo_propostas_modelo
   tb_veiculo_mailing_veiculo
   tb_veiculo_mailing_cidade
   tb_veiculo_mailing_historico
@@ -6492,7 +6492,6 @@ TableGroup "Veículo - Core" [color: #f97316] {
   tb_veiculo_oportunidade
   tb_veiculo_video
   tb_veiculo_revisao
-  tb_veiculo_seo_texto_faq
 }
 TableGroup "Veículo - Ciclo de Vida" [color: #f97316] {
   tb_veiculo_classificacao

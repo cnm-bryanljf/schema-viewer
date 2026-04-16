@@ -40,7 +40,7 @@ export function parseDocFile(filename: string, content: string): TableDoc {
     } else if (section === 'colunas') {
       // - **col_name** (type) [Obrigatório|Opcional] — summary
       // Also handles: - **col** (type) [Req] FK → table.col — summary (dash is optional)
-      const m = line.match(/^-\s+\*\*([^*]+)\*\*\s*(?:\(([^)]*)\))?\s*(?:\[([^\]]*)\])?\s*(?:[—-]\s*)?(.+)?/)
+      const m = line.match(/^-\s+\*\*([^*]+)\*\*\s*(?:\(((?:[^()]*|\([^()]*\))*)\))?\s*(?:\[([^\]]*)\])?\s*(?:[—-]\s*)?(.+)?/)
       if (m) {
         const [, name, type, req, summary] = m
         columns.push({

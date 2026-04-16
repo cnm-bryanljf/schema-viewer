@@ -1,6 +1,7 @@
 # Documentação e arquivos gerados
-docs/
-dist/
+docs/*
+docs_old/
+.claude/
 
 # Arquivos de banco de dados e saves
 *.db
@@ -23,3 +24,5 @@ docs.md
 # Outros arquivos que não devem ser versionados
 package-lock.json
 generate_docs.py
+schema_webserver.dbml
+schema_webserver_new.dbml
