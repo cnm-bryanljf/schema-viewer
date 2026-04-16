@@ -283,7 +283,16 @@ app.get('/api/settings/last-workspace', (_req, res) => {
   res.json({ lastWorkspace: row?.value ?? null })
 })
 
-const PORT = 3333
+// In production, serve the built Vite frontend and handle SPA fallback
+// Use process.cwd() so the path is always relative to /app regardless of how tsx resolves __dirname
+const distDir = path.join(process.cwd(), 'dist')
+console.log(`Looking for dist at: ${distDir} — exists: ${fs.existsSync(distDir)}`)
+app.use(express.static(distDir))
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distDir, 'index.html'))
+})
+
+const PORT = parseInt(process.env.PORT ?? '3333', 10)
 app.listen(PORT, () => {
   console.log(`Schema Viewer API running on http://localhost:${PORT}`)
 })
