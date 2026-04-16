@@ -1,0 +1,6 @@
+node_modules
+dist
+*.db
+.claude
+docs
+docs_old
